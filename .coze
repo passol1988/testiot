@@ -1,5 +1,5 @@
 [project]
-entrypoint = "index.html"
+entrypoint = "server.js"
 requires = ["nodejs-24"]
 
 [dev]
@@ -8,4 +8,4 @@ run = ["pnpm", "start", "--host", "--port", "5000"]
 
 [deploy]
 build = ["pnpm", "install"]
-run = ["npx", "vite", "preview", "--host", "--port", "5000"]
+run = ["node", "server.js"]
