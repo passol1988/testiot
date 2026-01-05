@@ -1,13 +1,11 @@
 [project]
-entrypoint = "server.js"
+entrypoint = "index.html"
 requires = ["nodejs-24"]
 
 [dev]
-build = ["bash", ".cozeproj/scripts/dev_build.sh"]
-run = ["bash", ".cozeproj/scripts/dev_run.sh"]
-deps = ["git"] # -> apt install git
+build = ["pnpm", "install"]
+run = ["pnpm", "start", "--host", "--port", "5000"]
 
 [deploy]
-build = ["bash", ".cozeproj/scripts/deploy_build.sh"]
-run = ["bash", ".cozeproj/scripts/deploy_run.sh"]
-deps = ["git"] # -> apt install git
+build = ["bash", "-c", "pnpm install && pnpm run build"]
+run = ["pnpm", "preview", "--host", "--port", "5000"]
