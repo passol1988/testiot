@@ -423,7 +423,7 @@ function Chat() {
       <Settings
         onSettingsChange={handleSettingsChange}
         localStorageKey={localStorageKey}
-        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id']}
+        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
         className="settings-button"
       />
       <Layout.Content style={{ padding: '16px', background: '#fff' }}>

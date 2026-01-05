@@ -66,6 +66,7 @@ const Settings2 = ({
     const baseWsUrl = config.getBaseWsUrl();
     const voiceId = config.getVoiceId();
     const workflowId = config.getWorkflowId();
+    const userId = config.getUserId();
     form.setFieldsValue({
       base_url: baseUrl,
       base_ws_url: baseWsUrl,
@@ -73,6 +74,7 @@ const Settings2 = ({
       bot_id: botId,
       voice_id: voiceId,
       workflow_id: workflowId,
+      user_id: userId,
     });
 
     if (botId && showSelect) {
@@ -284,6 +286,9 @@ const Settings2 = ({
             ) : (
               <Input />
             )}
+          </Form.Item>
+          <Form.Item key={'userID'} name={'user_id'} label="用户ID">
+            <Input placeholder="请输入用户ID（可选）" />
           </Form.Item>
           <Form.Item key={'workflowID'} name={'workflow_id'} label="工作流ID">
             <Input />

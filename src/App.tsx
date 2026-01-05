@@ -16,6 +16,7 @@ import {
   MenuFoldOutlined,
   GithubOutlined,
   FileTextOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 
 import TTSWithTranscription from './pages/tts_transcription';
@@ -24,6 +25,7 @@ import Speech from './pages/speech';
 import SimultInterpretation from './pages/simult-interpretation';
 import Chat from './pages/chat';
 import AudioTest from './pages/audio-test';
+import IoTToys from './pages/iot-toys';
 import logo from './logo.svg';
 import './App.css';
 const { Header, Content, Sider } = Layout;
@@ -47,6 +49,12 @@ const menuItems = [
     icon: <ExperimentOutlined />,
     label: '语音合成',
     title: '语音合成 (TTS) 演示',
+  },
+  {
+    key: '/iot-toys',
+    icon: <RobotOutlined />,
+    label: '生活物联网 AI 玩具',
+    title: '生活物联网 AI 玩具演示平台',
   },
   {
     key: '/simult',
@@ -211,6 +219,7 @@ function MainLayout() {
               <Route path="/audio-test" element={<AudioTest />} />
               <Route path="/transcription" element={<Transcription />} />
               <Route path="/speech" element={<Speech />} />
+              <Route path="/iot-toys" element={<IoTToys />} />
               <Route path="/simult" element={<SimultInterpretation />} />
               <Route
                 path="/tts_transcription"
