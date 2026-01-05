@@ -93,7 +93,7 @@ function Chat() {
   // 按键说话状态
   const [isPressRecording, setIsPressRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordTimer = useRef<NodeJS.Timeout | null>(null);
+  const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxRecordingTime = 60; // 最大录音时长（秒）
   const [isCancelRecording, setIsCancelRecording] = useState(false);
   const startTouchY = useRef<number>(0);
