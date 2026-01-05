@@ -40,9 +40,8 @@ const Settings2 = ({
   );
   const [voiceData, setVoiceData] = useState<OptionProps[]>([]);
   const [pat, setPat] = useState(config.getPat());
-  const [showSelect, setShowSelect] = useState(
-    () => !config.getPat().startsWith('pat_'),
-  );
+  const [showSelect, setShowSelect] = useState(() => !!config.getPat());
+  const [showVoiceSelect, setShowVoiceSelect] = useState(() => !!config.getPat());
 
   const onLoadData: TreeSelectProps['loadData'] = async ({ id }) => {
     const options = await getBots(id);
@@ -92,6 +91,10 @@ const Settings2 = ({
     } else {
       setShowSelect(false);
     }
+    // 音色列表始终允许选择
+    if (pat) {
+      setShowVoiceSelect(true);
+    }
   }, [isRelease, pat]);
 
   const fetchAllWorkspaces = async () => {
@@ -127,13 +130,15 @@ const Settings2 = ({
     if (!pat) {
       return;
     }
+    // 音色列表总是加载
+    fetchAllVoices();
+    // 工作空间列表只在 showSelect 为 true 时加载
     if (showSelect) {
       fetchAllWorkspaces();
-      fetchAllVoices();
     } else {
       form.setFieldValue('bot_id', config.getBotId());
     }
-  }, [showSelect]);
+  }, [showSelect, pat]);
 
   // handle settings save
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -265,7 +270,7 @@ const Settings2 = ({
             )}
           </Form.Item>
           <Form.Item key={'voiceID'} name={'voice_id'} label="音色ID">
-            {showSelect ? (
+            {showVoiceSelect ? (
               <Select
                 placeholder="Please select"
                 showSearch
