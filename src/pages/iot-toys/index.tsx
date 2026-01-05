@@ -8,13 +8,41 @@ import {
   WsToolsUtils,
 } from '@coze/api/ws-tools';
 import {
-  type ConversationAudioTranscriptUpdateEvent,
+  type ConversationMessageCompletedEvent,
+  type ConversationChatCreatedEvent,
   type CommonErrorEvent,
 } from '@coze/api';
+
+// Coze API 类型定义
+interface MessageData {
+  id: string;
+  conversation_id: string;
+  bot_id: string;
+  chat_id: string;
+  meta_data: Record<string, string>;
+  role: 'user' | 'assistant';
+  content: string;
+  content_type: 'text' | 'object_string' | 'card' | 'audio';
+  type: 'question' | 'answer' | 'function_call' | 'tool_output' | 'tool_response' | 'follow_up' | 'verbose';
+}
+
+interface ChatData {
+  id: string;
+  conversation_id: string;
+  bot_id: string;
+  created_at?: number;
+  last_error?: {
+    code: number;
+    msg: string;
+  };
+  meta_data?: Record<string, string>;
+  status?: string;
+}
 
 import './index.css';
 import getConfig from '../../utils/config';
 import Settings from '../../components/settings2';
+import { getChatMessages } from '../../utils/api';
 
 const { Content } = Layout;
 
@@ -48,6 +76,10 @@ const IoTToys = () => {
   // 当前会话ID
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [sessionStartTime, setSessionStartTime] = useState<string>('');
+
+  // Coze API 会话信息
+  const [conversationId, setConversationId] = useState<string>('');
+  const [chatId, setChatId] = useState<string>('');
 
   // 获取音频设备
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
@@ -123,15 +155,33 @@ const IoTToys = () => {
 
   // 处理消息事件
   const handleMessageEvent = () => {
+    // 监听对话创建事件，获取 conversation_id 和 chat_id
     clientRef.current?.on(
-      WsChatEventNames.CONVERSATION_AUDIO_TRANSCRIPT_UPDATE,
+      WsChatEventNames.CONVERSATION_CHAT_CREATED,
       (_, data) => {
-        const event = data as ConversationAudioTranscriptUpdateEvent;
-        if (event.data.content) {
-          // 添加字幕
+        const event = data as ConversationChatCreatedEvent;
+        const chatData = event.data as ChatData;
+
+        console.log('Chat created:', chatData);
+
+        if (chatData.conversation_id && chatData.id) {
+          setConversationId(chatData.conversation_id);
+          setChatId(chatData.id);
+        }
+      },
+    );
+
+    // 监听消息完成事件，获取完整的对话消息（包含 role）
+    clientRef.current?.on(
+      WsChatEventNames.CONVERSATION_MESSAGE_COMPLETED,
+      (_, data) => {
+        const event = data as ConversationMessageCompletedEvent;
+        const msgData = event.data as MessageData;
+
+        if (msgData.content) {
           const newMessage: ChatMessage = {
-            role: 'assistant',
-            content: event.data.content,
+            role: msgData.role,
+            content: msgData.content,
             time: new Date().toLocaleTimeString('zh-CN', {
               hour: '2-digit',
               minute: '2-digit',
@@ -219,25 +269,51 @@ const IoTToys = () => {
       clientRef.current = undefined;
     }
 
-    // 保存当前会话到历史记录
-    if (subtitleList.length > 0) {
-      const session: ChatSession = {
-        id: currentSessionId,
-        userId: config.getUserId() || 'default',
-        startTime: sessionStartTime,
-        endTime: new Date().toLocaleString('zh-CN'),
-        messages: subtitleList,
-      };
+    // 使用 Coze API 获取完整的消息列表
+    if (conversationId && chatId) {
+      try {
+        const messages = await getChatMessages(conversationId, chatId, localStorageKey);
 
-      // 加载现有历史记录，添加新会话
-      loadChatHistory();
-      setChatHistory(prev => {
-        const updated = [session, ...prev];
-        saveChatHistory(updated);
-        return updated;
-      });
+        // 转换消息格式
+        const chatMessages: ChatMessage[] = messages
+          .filter(msg => msg.content) // 只保留有内容的消息
+          .map(msg => ({
+            role: msg.role,
+            content: msg.content,
+            time: new Date().toLocaleTimeString('zh-CN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
+          }));
+
+        // 如果有消息，保存到历史记录
+        if (chatMessages.length > 0) {
+          const session: ChatSession = {
+            id: currentSessionId,
+            userId: config.getUserId() || 'default',
+            startTime: sessionStartTime,
+            endTime: new Date().toLocaleString('zh-CN'),
+            messages: chatMessages,
+          };
+
+          // 加载现有历史记录，添加新会话
+          loadChatHistory();
+          setChatHistory(prev => {
+            const updated = [session, ...prev];
+            saveChatHistory(updated);
+            return updated;
+          });
+        }
+      } catch (error) {
+        console.error('获取历史消息失败:', error);
+        message.error('保存聊天记录失败');
+      }
     }
 
+    // 清空状态
+    setConversationId('');
+    setChatId('');
     setCallState('ended');
     setSubtitleList([]);
     message.success('通话已结束');
