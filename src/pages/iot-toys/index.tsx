@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Spin, Layout } from 'antd';
-import { PhoneOutlined, PhoneFilled, MessageOutlined } from '@ant-design/icons';
+import { Button, message, Layout } from 'antd';
+import { PhoneOutlined, PhoneFilled, RobotOutlined } from '@ant-design/icons';
 import {
   WsChatClient,
   WsChatEventNames,
@@ -26,6 +26,14 @@ interface ChatMessage {
   time: string;
 }
 
+interface ChatSession {
+  id: string;
+  userId: string;
+  startTime: string;
+  endTime: string;
+  messages: ChatMessage[];
+}
+
 const IoTToys = () => {
   const clientRef = useRef<WsChatClient>();
   const localStorageKey = 'iot-toys';
@@ -35,7 +43,11 @@ const IoTToys = () => {
   const [callState, setCallState] = useState<CallState>('idle');
   const [isConnecting, setIsConnecting] = useState(false);
   const [subtitleList, setSubtitleList] = useState<ChatMessage[]>([]);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
+
+  // 当前会话ID
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [sessionStartTime, setSessionStartTime] = useState<string>('');
 
   // 获取音频设备
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
@@ -48,7 +60,34 @@ const IoTToys = () => {
       }
     };
     getDevices();
+
+    // 加载历史记录
+    loadChatHistory();
   }, []);
+
+  // 从 localStorage 加载聊天历史
+  const loadChatHistory = () => {
+    try {
+      const userId = config.getUserId() || 'default';
+      const storedHistory = localStorage.getItem(`iot-toys-history-${userId}`);
+      if (storedHistory) {
+        const history = JSON.parse(storedHistory) as ChatSession[];
+        setChatHistory(history);
+      }
+    } catch (error) {
+      console.error('加载历史记录失败:', error);
+    }
+  };
+
+  // 保存聊天历史到 localStorage
+  const saveChatHistory = (sessions: ChatSession[]) => {
+    try {
+      const userId = config.getUserId() || 'default';
+      localStorage.setItem(`iot-toys-history-${userId}`, JSON.stringify(sessions));
+    } catch (error) {
+      console.error('保存历史记录失败:', error);
+    }
+  };
 
   // 初始化客户端
   async function initClient() {
@@ -93,7 +132,11 @@ const IoTToys = () => {
           const newMessage: ChatMessage = {
             role: 'assistant',
             content: event.data.content,
-            time: new Date().toLocaleTimeString(),
+            time: new Date().toLocaleTimeString('zh-CN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }),
           };
 
           setSubtitleList(prev => [...prev, newMessage]);
@@ -123,6 +166,11 @@ const IoTToys = () => {
     try {
       setIsConnecting(true);
       setCallState('calling');
+
+      // 生成新的会话ID
+      const sessionId = `session-${Date.now()}`;
+      setCurrentSessionId(sessionId);
+      setSessionStartTime(new Date().toLocaleString('zh-CN'));
 
       if (!clientRef.current) {
         await initClient();
@@ -171,8 +219,25 @@ const IoTToys = () => {
       clientRef.current = undefined;
     }
 
-    // 保存聊天记录
-    setChatHistory([...subtitleList]);
+    // 保存当前会话到历史记录
+    if (subtitleList.length > 0) {
+      const session: ChatSession = {
+        id: currentSessionId,
+        userId: config.getUserId() || 'default',
+        startTime: sessionStartTime,
+        endTime: new Date().toLocaleString('zh-CN'),
+        messages: subtitleList,
+      };
+
+      // 加载现有历史记录，添加新会话
+      loadChatHistory();
+      setChatHistory(prev => {
+        const updated = [session, ...prev];
+        saveChatHistory(updated);
+        return updated;
+      });
+    }
+
     setCallState('ended');
     setSubtitleList([]);
     message.success('通话已结束');
@@ -180,6 +245,7 @@ const IoTToys = () => {
 
   // 重新拨打
   const handleRecall = () => {
+    setCallState('idle');
     setChatHistory([]);
     handleStartCall();
   };
@@ -188,7 +254,6 @@ const IoTToys = () => {
   const handleBackToIdle = () => {
     setCallState('idle');
     setChatHistory([]);
-    setSubtitleList([]);
   };
 
   // 清理资源
@@ -211,8 +276,8 @@ const IoTToys = () => {
       <h1>生活物联网 AI 玩具演示平台</h1>
       <p>体验智能对话，开启物联网新时代</p>
       <button className="call-button" onClick={handleStartCall}>
-        <PhoneOutlined style={{ fontSize: 32 }} />
-        <span>开始对话</span>
+        <span className="phone-icon"><PhoneOutlined /></span>
+        <span className="button-text">开始对话</span>
       </button>
     </div>
   );
@@ -220,14 +285,12 @@ const IoTToys = () => {
   // 渲染通话中界面
   const renderCallingState = () => (
     <div className="calling-section">
-      {isConnecting && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <Spin size="large" />
-          <div style={{ marginTop: 16, color: '#666' }}>正在连接...</div>
+      {isConnecting ? (
+        <div className="loading-container">
+          <div className="loading-ring"></div>
+          <div className="loading-text">正在连接 AI 玩具...</div>
         </div>
-      )}
-
-      {!isConnecting && (
+      ) : (
         <>
           <div className="call-header">
             <div className="call-status">
@@ -246,27 +309,29 @@ const IoTToys = () => {
 
           <div className="subtitle-section">
             <h3>实时字幕</h3>
-            {subtitleList.length === 0 && (
-              <div style={{ textAlign: 'center', color: '#999', marginTop: 40 }}>
-                等待对话内容...
+            {subtitleList.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">💬</div>
+                <div className="empty-text">等待对话内容...</div>
               </div>
-            )}
-            {subtitleList.map((item, index) => (
-              <div
-                key={index}
-                className={`subtitle-item ${item.role}`}
-              >
-                <div className="role">
-                  {item.role === 'user' ? '你' : 'AI 助手'}
+            ) : (
+              subtitleList.map((item, index) => (
+                <div
+                  key={index}
+                  className={`subtitle-item ${item.role}`}
+                >
+                  <div className="role">
+                    {item.role === 'user' ? '👤 用户' : '🤖 AI 玩具'}
+                  </div>
+                  <div className="content">{item.content}</div>
                 </div>
-                <div className="content">{item.content}</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="control-buttons">
             <button className="btn-hangup" onClick={handleEndCall}>
-              <PhoneFilled />
+              <span><PhoneFilled /></span>
             </button>
           </div>
         </>
@@ -275,37 +340,67 @@ const IoTToys = () => {
   );
 
   // 渲染挂断后界面
-  const renderEndedState = () => (
-    <div className="chat-history-section">
-      <div className="chat-history-header">
-        <h2>聊天记录</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button icon={<MessageOutlined />} onClick={handleRecall}>
-            重新拨打
-          </Button>
-          <Button onClick={handleBackToIdle}>返回</Button>
-        </div>
-      </div>
+  const renderEndedState = () => {
+    // 按会话分组历史记录
+    const groupedSessions = chatHistory.map(session => ({
+      ...session,
+    }));
 
-      {chatHistory.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#999', marginTop: 40 }}>
-          暂无聊天记录
+    return (
+      <div className="chat-history-section">
+        <div className="chat-history-header">
+          <h2>聊天记录</h2>
+          <div className="header-actions">
+            <Button
+              icon={<RobotOutlined />}
+              onClick={handleRecall}
+              size="large"
+              type="primary"
+            >
+              重新拨打
+            </Button>
+            <Button onClick={handleBackToIdle} size="large">
+              返回
+            </Button>
+          </div>
         </div>
-      ) : (
-        <div className="chat-list">
-          {chatHistory.map((item, index) => (
-            <div key={index} className={`chat-item ${item.role}`}>
-              <div className="role">
-                {item.role === 'user' ? '你' : 'AI 助手'}
+
+        {groupedSessions.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📝</div>
+            <div className="empty-text">暂无聊天记录</div>
+          </div>
+        ) : (
+          <div className="chat-list">
+            {groupedSessions.map(session => (
+              <div key={session.id} className="session-group">
+                <div className="session-separator">
+                  <div className="line"></div>
+                  <div className="session-info">
+                    💬 {session.startTime} - {session.endTime}
+                  </div>
+                  <div className="line"></div>
+                </div>
+
+                {session.messages.map((message, messageIndex) => (
+                  <div
+                    key={`${session.id}-${messageIndex}`}
+                    className={`chat-item ${message.role}`}
+                  >
+                    <div className="role">
+                      {message.role === 'user' ? '👤 用户' : '🤖 AI 玩具'}
+                    </div>
+                    <div className="content">{message.content}</div>
+                    <div className="time">{message.time}</div>
+                  </div>
+                ))}
               </div>
-              <div className="content">{item.content}</div>
-              <div className="time">{item.time}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <Layout className="iot-toys-page">
