@@ -2,20 +2,14 @@ import {
   HashRouter as Router,
   Routes,
   Route,
-  useNavigate,
   useLocation,
 } from 'react-router-dom';
-import { useState } from 'react';
 
-import { Layout, Menu, theme, Button, Space } from 'antd';
+import { Layout, theme } from 'antd';
 import {
   MessageOutlined,
   CustomerServiceOutlined,
   ExperimentOutlined,
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
-  GithubOutlined,
-  FileTextOutlined,
   RobotOutlined,
 } from '@ant-design/icons';
 
@@ -26,9 +20,8 @@ import SimultInterpretation from './pages/simult-interpretation';
 import Chat from './pages/chat';
 import AudioTest from './pages/audio-test';
 import IoTToys from './pages/iot-toys';
-import logo from './logo.svg';
 import './App.css';
-const { Header, Content, Sider } = Layout;
+const { Header, Content } = Layout;
 
 const isHidden = location.hostname === 'www.coze.cn';
 const menuItems = [
@@ -78,8 +71,6 @@ const menuItems = [
 ];
 
 function MainLayout() {
-  const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -93,58 +84,6 @@ function MainLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={value => setCollapsed(value)}
-        breakpoint="lg"
-        collapsedWidth="0"
-        style={{ zIndex: 2 }}
-        trigger={null}
-      >
-        <div
-          style={{
-            height: 40,
-            margin: 16,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            overflow: 'hidden',
-            transition: 'all 0.2s',
-          }}
-        >
-          <img
-            src={logo}
-            alt="logo"
-            style={{
-              height: 40,
-              marginRight: collapsed ? 0 : 8,
-              transition: 'all 0.2s',
-            }}
-          />
-          {!collapsed && (
-            <span
-              style={{
-                color: '#fff',
-                fontSize: 16,
-                fontWeight: 600,
-                opacity: collapsed ? 0 : 1,
-                transition: 'opacity 0.2s',
-              }}
-            >
-              扣子
-            </span>
-          )}
-        </div>
-        <Menu
-          theme="dark"
-          selectedKeys={[location.pathname]}
-          mode="inline"
-          items={menuItems.filter(item => !item.isHidden)}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
       <Layout>
         <Header
           style={{
@@ -158,51 +97,16 @@ function MainLayout() {
         >
           <div className="header-content">
             <div className="header-left">
-              <Button
-                type="text"
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setCollapsed(!collapsed)}
-                style={{
-                  fontSize: '16px',
-                  width: 40,
-                  height: 64,
-                }}
-              />
               <h3
                 style={{
                   fontSize: '16px',
                   marginBottom: '0',
                   lineHeight: '64px',
+                  marginLeft: '16px',
                 }}
               >
                 {currentTitle}
               </h3>
-            </div>
-
-            <div className="header-right">
-              {location.pathname !== '/iot-toys' && (
-                <Space size={2} style={{ display: 'flex' }}>
-                  <Button
-                    type="link"
-                    icon={<FileTextOutlined />}
-                    href="https://github.com/coze-dev/coze-js/discussions"
-                    target="_blank"
-                    style={{ padding: '0 8px' }}
-                  >
-                    文档
-                  </Button>
-
-                  <Button
-                    type="link"
-                    icon={<GithubOutlined />}
-                    href="https://github.com/coze-dev/coze-js/tree/main/examples/realtime-websocket"
-                    target="_blank"
-                    style={{ padding: '0 8px' }}
-                  >
-                    GitHub
-                  </Button>
-                </Space>
-              )}
             </div>
           </div>
         </Header>

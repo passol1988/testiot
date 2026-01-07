@@ -739,7 +739,7 @@ const IoTToys = () => {
 
   return (
     <Layout className="iot-toys-page">
-      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 10 }}>
         <Space size={8}>
           <Settings
             onSettingsChange={handleSettingsChange}
