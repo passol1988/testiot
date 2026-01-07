@@ -347,7 +347,14 @@ const IoTToys = () => {
 
         // 转换消息格式
         const chatMessages: ChatMessage[] = messages
-          .filter(msg => msg.content) // 只保留有内容的消息
+          .filter(msg => {
+            // 只保留真正的对话消息
+            return (
+              msg.content && // 有内容
+              (msg.type === 'question' || msg.type === 'answer') && // 是问答类型的消息
+              (msg.role === 'user' || msg.role === 'assistant') // 是用户或 AI 消息
+            );
+          })
           .map(msg => ({
             role: msg.role,
             content: msg.content,
