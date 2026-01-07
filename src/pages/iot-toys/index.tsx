@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload, Space } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
@@ -118,16 +118,18 @@ const IoTToys = () => {
         throw new Error('获取智能体信息失败');
       }
 
-      const data = await response.json();
-      console.log('获取智能体信息响应:', data);
+      const result = await response.json();
+      console.log('获取智能体信息响应:', result);
+      // 数据结构是 result.data.name, result.data.description, result.data.icon_url
+      const botData = result.data;
       botForm.setFieldsValue({
-        name: data.name || data.bot_name || '',
-        description: data.description || '',
-        icon_url: data.icon_url || '',
-        prompt: data.prompt || '',
-        prologue: data.prologue || '',
+        name: botData.name || '',
+        description: botData.description || '',
+        icon_url: botData.icon_url || '',
+        prompt: botData.prompt_info?.prompt || '',
+        prologue: botData.onboarding_info?.prologue || '',
       });
-      setAvatarUrl(data.icon_url || '');
+      setAvatarUrl(botData.icon_url || '');
       message.success('智能体信息已加载');
     } catch (error) {
       console.error('获取智能体信息失败:', error);
@@ -185,8 +187,19 @@ const IoTToys = () => {
         name: values.name,
         description: values.description,
         icon_url: values.icon_url,
-        prompt: values.prompt,
-        prologue: values.prologue,
+        prompt_info: {
+          prompt: values.prompt,
+          prompt_mode: 'standard',
+        },
+        onboarding_info: {
+          prologue: values.prologue,
+          suggested_questions: [
+            "猜谜语",
+            "数字小问题",
+            "你问我答",
+            "成语接龙"
+          ],
+        },
       };
 
       console.log('发送给API的数据:', updateData);
@@ -726,22 +739,24 @@ const IoTToys = () => {
 
   return (
     <Layout className="iot-toys-page">
-      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, display: 'flex', gap: 8 }}>
-        <Settings
-          onSettingsChange={handleSettingsChange}
-          localStorageKey={localStorageKey}
-          fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
-          className="settings-button"
-          buttonText="基础配置"
-          modalTitle="基础配置"
-        />
-        <Button
-          type="default"
-          icon={<RobotOutlined />}
-          onClick={handleOpenBotConfig}
-        >
-          智能体配置
-        </Button>
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+        <Space size={8}>
+          <Settings
+            onSettingsChange={handleSettingsChange}
+            localStorageKey={localStorageKey}
+            fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
+            className="settings-button"
+            buttonText="基础配置"
+            modalTitle="基础配置"
+          />
+          <Button
+            type="default"
+            icon={<RobotOutlined />}
+            onClick={handleOpenBotConfig}
+          >
+            智能体配置
+          </Button>
+        </Space>
       </div>
       <Content className="iot-toys-container">
         {callState === 'idle' && renderIdleState()}
