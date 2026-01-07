@@ -70,7 +70,23 @@ const Settings2 = ({
     const baseWsUrl = config.getBaseWsUrl();
     const voiceId = config.getVoiceId();
     const workflowId = config.getWorkflowId();
-    const userId = config.getUserId();
+    let userId = config.getUserId();
+
+    // 从当前登录用户获取 userId（如果本地存储中没有）
+    if (!userId) {
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        try {
+          const user = JSON.parse(currentUser);
+          userId = user.userId || '';
+          // 保存到 localStorage
+          localStorage.setItem(`${localStorageKey}_user_id`, userId);
+        } catch (error) {
+          console.error('解析用户信息失败:', error);
+        }
+      }
+    }
+
     form.setFieldsValue({
       base_url: baseUrl,
       base_ws_url: baseWsUrl,
@@ -292,7 +308,7 @@ const Settings2 = ({
             )}
           </Form.Item>
           <Form.Item key={'userID'} name={'user_id'} label="用户ID">
-            <Input placeholder="请输入用户ID（可选）" />
+            <Input placeholder="请输入用户ID（可选）" disabled />
           </Form.Item>
           <Form.Item key={'workflowID'} name={'workflow_id'} label="工作流ID">
             <Input />
