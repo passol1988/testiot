@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout, Select, Modal, Slider, Tooltip, Radio } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
@@ -430,33 +430,6 @@ const IoTToys = () => {
               <span>通话中</span>
             </div>
             <div className="header-actions">
-              <div className="mode-selector">
-                <Tooltip title="选择对话模式">
-                  <Radio.Group
-                    value={turnDetectionType}
-                    onChange={e => setTurnDetectionType(e.target.value)}
-                    size="small"
-                  >
-                    <Radio.Button value="server_vad">自动检测</Radio.Button>
-                    <Radio.Button value="client_interrupt">按键说话</Radio.Button>
-                  </Radio.Group>
-                </Tooltip>
-              </div>
-              <div className="mode-selector" style={{ marginLeft: '8px' }}>
-                <Tooltip title="选择回复模式">
-                  <Radio.Group
-                    value={replyMode}
-                    onChange={e => {
-                      setReplyMode(e.target.value);
-                      localStorage.setItem('replyMode', e.target.value);
-                    }}
-                    size="small"
-                  >
-                    <Radio.Button value="stream">流式</Radio.Button>
-                    <Radio.Button value="sentence">音字同步</Radio.Button>
-                  </Radio.Group>
-                </Tooltip>
-              </div>
               <Button
                 type="text"
                 icon={<SettingOutlined />}
@@ -587,20 +560,41 @@ const IoTToys = () => {
         {callState === 'connected' && renderCallingState()}
       </Content>
 
-      {/* 音频配置模态框 */}
+      {/* 配置模态框 */}
       <Modal
-        title="音频配置"
+        title="高级配置"
         open={isConfigModalOpen}
         onCancel={() => setIsConfigModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsConfigModalOpen(false)}>
-            关闭
-          </Button>,
-        ]}
-        width={600}
-        className="audio-config-modal"
+        footer={null}
+        destroyOnClose={false}
+        forceRender
       >
         <AudioConfig clientRef={clientRef} ref={audioConfigRef} />
+        <div style={{ padding: '24px' }}>
+          <Form.Item name="turn_detection" label="对话模式">
+            <Select
+              value={turnDetectionType}
+              onChange={setTurnDetectionType}
+              options={[
+                { label: '自由对话模式', value: 'server_vad' },
+                { label: '按键说话模式', value: 'client_interrupt' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="reply_mode" label="回复模式">
+            <Select
+              value={replyMode}
+              onChange={value => {
+                setReplyMode(value);
+                localStorage.setItem('replyMode', value);
+              }}
+              options={[
+                { label: '流式模式', value: 'stream' },
+                { label: '字幕同步', value: 'sentence' },
+              ]}
+            />
+          </Form.Item>
+        </div>
       </Modal>
     </Layout>
   );
