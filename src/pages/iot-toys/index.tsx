@@ -608,8 +608,8 @@ const IoTToys = () => {
   // 渲染初始状态界面
   const renderIdleState = () => (
     <div className="hero-section">
-      <h1>生活物联网 AI 玩具演示平台</h1>
-      <p>体验智能对话，开启物联网新时代</p>
+      <h1>AI玩具演示平台</h1>
+      <p>体验智能对话，开启 AI 玩具新时代</p>
       <div className="button-group">
         <Button
           type="primary"
@@ -774,8 +774,8 @@ const IoTToys = () => {
             localStorageKey={localStorageKey}
             fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
             className="settings-button"
-            buttonText="基础配置"
-            modalTitle="基础配置"
+            buttonText="通话配置"
+            modalTitle="通话配置"
           />
           <Button
             type="default"

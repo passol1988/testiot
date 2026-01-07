@@ -3,71 +3,31 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from 'react-router-dom';
 
-import { Layout, theme } from 'antd';
-import {
-  MessageOutlined,
-  CustomerServiceOutlined,
-  ExperimentOutlined,
-  RobotOutlined,
-} from '@ant-design/icons';
+import { Layout, theme, Dropdown, Avatar } from 'antd';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { RobotOutlined } from '@ant-design/icons';
 
-import TTSWithTranscription from './pages/tts_transcription';
-import Transcription from './pages/transcription';
-import Speech from './pages/speech';
-import SimultInterpretation from './pages/simult-interpretation';
-import Chat from './pages/chat';
-import AudioTest from './pages/audio-test';
 import IoTToys from './pages/iot-toys';
+import Login from './pages/login';
 import './App.css';
 const { Header, Content } = Layout;
 
-const isHidden = location.hostname === 'www.coze.cn';
+// 路由守卫组件
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+  const user = localStorage.getItem('currentUser');
+  return user ? children : <Navigate to="/login" replace />;
+};
+
 const menuItems = [
   {
     key: '/iot-toys',
     icon: <RobotOutlined />,
-    label: '生活物联网 AI 玩具',
-    title: '生活物联网 AI 玩具演示平台',
+    label: '生活物联网',
+    title: '生活物联网',
   },
-  {
-    key: '/chat',
-    icon: <MessageOutlined />,
-    label: '实时语音对话',
-    title: '实时语音对话 (Chat) 演示',
-  },
-  {
-    key: '/transcription',
-    icon: <CustomerServiceOutlined />,
-    label: '语音识别',
-    title: '语音识别 (ASR) 演示',
-  },
-  {
-    key: '/speech',
-    icon: <ExperimentOutlined />,
-    label: '语音合成',
-    title: '语音合成 (TTS) 演示',
-  },
-  {
-    key: '/simult',
-    icon: <CustomerServiceOutlined />,
-    label: '同声传译',
-    title: '多语种实时翻译 (Simult) 演示',
-    isHidden,
-  },
-  {
-    key: '/tts_transcription',
-    icon: <ExperimentOutlined />,
-    label: '语音识别+实时语音对话',
-    title: '语音识别 (ASR) +TTS',
-    isHidden,
-  },
-  // {
-  //   key: '/audio-test',
-  //   icon: <AudioOutlined />,
-  //   label: '音频测试',
-  // },
 ];
 
 function MainLayout() {
@@ -81,6 +41,22 @@ function MainLayout() {
     item => item.key === location.pathname,
   );
   const currentTitle = currentMenuItem?.title || '扣子实时语音对话';
+
+  // 获取当前用户
+  const currentUser = localStorage.getItem('currentUser');
+
+  // 用户下拉菜单
+  const userMenuItems = [
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      onClick: () => {
+        localStorage.removeItem('currentUser');
+        window.location.href = '#/login';
+      },
+    },
+  ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -108,6 +84,16 @@ function MainLayout() {
                 {currentTitle}
               </h3>
             </div>
+            {currentUser && (
+              <div className="header-right">
+                <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                  <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '0 16px' }}>
+                    <Avatar icon={<UserOutlined />} style={{ marginRight: 8, backgroundColor: '#1890ff' }} />
+                    <span>{JSON.parse(currentUser).username}</span>
+                  </div>
+                </Dropdown>
+              </div>
+            )}
           </div>
         </Header>
         <Content style={{ margin: '16px' }}>
@@ -121,16 +107,15 @@ function MainLayout() {
             }}
           >
             <Routes>
-              <Route path="/" element={<IoTToys />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/audio-test" element={<AudioTest />} />
-              <Route path="/transcription" element={<Transcription />} />
-              <Route path="/speech" element={<Speech />} />
-              <Route path="/iot-toys" element={<IoTToys />} />
-              <Route path="/simult" element={<SimultInterpretation />} />
+              <Route path="/" element={<Navigate to="/iot-toys" replace />} />
+              <Route path="/login" element={<Login />} />
               <Route
-                path="/tts_transcription"
-                element={<TTSWithTranscription />}
+                path="/iot-toys"
+                element={
+                  <PrivateRoute>
+                    <IoTToys />
+                  </PrivateRoute>
+                }
               />
             </Routes>
           </div>
