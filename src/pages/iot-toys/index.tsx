@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
@@ -27,6 +27,8 @@ import SentenceMessage, {
   type SentenceMessageRef,
 } from '../chat/sentence-message';
 import SendMessage from '../chat/send-message';
+import Settings from '../../components/settings2';
+import EventInput from '../../components/event-input';
 
 const { Content } = Layout;
 
@@ -34,6 +36,28 @@ type CallState = 'idle' | 'calling' | 'connected';
 
 const localStorageKey = 'iot-toys';
 const config = getConfig(localStorageKey);
+
+// Helper function to get chatUpdate config based on turn detection mode
+const getChatUpdateConfig = (turnDetectionType: string) => ({
+  data: {
+    input_audio: {
+      format: 'pcm',
+      codec: 'pcm',
+      sample_rate: 48000,
+    },
+    output_audio: {
+      codec: 'pcm',
+      pcm_config: {
+        sample_rate: 24000,
+      },
+      voice_id: config.getVoiceId(),
+    },
+    turn_detection: {
+      type: turnDetectionType,
+    },
+    need_play_prologue: true,
+  },
+});
 
 // 获取回复模式配置
 const getReplyMode = (): 'stream' | 'sentence' =>
@@ -56,11 +80,15 @@ const IoTToys = () => {
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
+  // 处理 Settings 变化
+  const handleSettingsChange = () => {
+    console.log('Settings changed');
+    // 可以在这里刷新页面或重新加载配置
+  };
+
   // 对话模式和回复模式
   const [turnDetectionType, setTurnDetectionType] = useState('server_vad');
-  const [replyMode, setReplyMode] = useState<'stream' | 'sentence'>(
-    getReplyMode(),
-  );
+  const [replyMode] = useState<'stream' | 'sentence'>(getReplyMode());
 
   // 获取音频设备
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
@@ -83,6 +111,14 @@ const IoTToys = () => {
     };
     getDevices();
   }, []);
+
+  // 同步对话模式配置
+  useEffect(() => {
+    const turnDetection = config.getChatUpdate()?.data?.turn_detection?.type;
+    if (turnDetection && turnDetection !== turnDetectionType) {
+      setTurnDetectionType(turnDetection);
+    }
+  }, [turnDetectionType]);
 
   // 初始化客户端
   async function initClient() {
@@ -554,6 +590,12 @@ const IoTToys = () => {
 
   return (
     <Layout className="iot-toys-page">
+      <Settings
+        onSettingsChange={handleSettingsChange}
+        localStorageKey={localStorageKey}
+        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
+        className="settings-button"
+      />
       <Content className="iot-toys-container">
         {callState === 'idle' && renderIdleState()}
         {callState === 'calling' && renderCallingState()}
@@ -570,31 +612,12 @@ const IoTToys = () => {
         forceRender
       >
         <AudioConfig clientRef={clientRef} ref={audioConfigRef} />
-        <div style={{ padding: '24px' }}>
-          <Form.Item name="turn_detection" label="对话模式">
-            <Select
-              value={turnDetectionType}
-              onChange={setTurnDetectionType}
-              options={[
-                { label: '自由对话模式', value: 'server_vad' },
-                { label: '按键说话模式', value: 'client_interrupt' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="reply_mode" label="回复模式">
-            <Select
-              value={replyMode}
-              onChange={value => {
-                setReplyMode(value);
-                localStorage.setItem('replyMode', value);
-              }}
-              options={[
-                { label: '流式模式', value: 'stream' },
-                { label: '字幕同步', value: 'sentence' },
-              ]}
-            />
-          </Form.Item>
-        </div>
+        <EventInput
+          defaultValue={
+            localStorage.getItem('chatUpdate') ||
+            JSON.stringify(getChatUpdateConfig(turnDetectionType), null, 2)
+          }
+        />
       </Modal>
     </Layout>
   );
