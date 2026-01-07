@@ -4,7 +4,6 @@ import { Button, message, Layout, Select, Modal, Slider, Tooltip } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
-  RobotOutlined,
   SoundOutlined,
   SoundFilled,
   AudioOutlined,
@@ -17,60 +16,24 @@ import {
 } from '@coze/api/ws-tools';
 import {
   type ConversationMessageCompletedEvent,
-  type ConversationChatCreatedEvent,
   type CommonErrorEvent,
   type ConversationAudioTranscriptUpdateEvent,
 } from '@coze/api';
 
 import { AudioConfig, type AudioConfigRef } from '../../components/audio-config';
 
-// Coze API 类型定义
-interface MessageData {
-  id: string;
-  conversation_id: string;
-  bot_id: string;
-  chat_id: string;
-  meta_data: Record<string, string>;
-  role: 'user' | 'assistant';
-  content: string;
-  content_type: 'text' | 'object_string' | 'card' | 'audio';
-  type: 'question' | 'answer' | 'function_call' | 'tool_output' | 'tool_response' | 'follow_up' | 'verbose';
-}
-
-interface ChatData {
-  id: string;
-  conversation_id: string;
-  bot_id: string;
-  created_at?: number;
-  last_error?: {
-    code: number;
-    msg: string;
-  };
-  meta_data?: Record<string, string>;
-  status?: string;
-}
-
 import './index.css';
 import getConfig from '../../utils/config';
 import Settings from '../../components/settings2';
-import { getChatMessages } from '../../utils/api';
 
 const { Content } = Layout;
 
-type CallState = 'idle' | 'calling' | 'connected' | 'ended';
+type CallState = 'idle' | 'calling' | 'connected';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   time: string;
-}
-
-interface ChatSession {
-  id: string;
-  userId: string;
-  startTime: string;
-  endTime: string;
-  messages: ChatMessage[];
 }
 
 const IoTToys = () => {
@@ -83,7 +46,6 @@ const IoTToys = () => {
   const [callState, setCallState] = useState<CallState>('idle');
   const [isConnecting, setIsConnecting] = useState(false);
   const [subtitleList, setSubtitleList] = useState<ChatMessage[]>([]);
-  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
 
   // 音频配置状态
   const [volume, setVolume] = useState(100);
@@ -91,14 +53,6 @@ const IoTToys = () => {
   const [transcript, setTranscript] = useState('');
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
-
-  // 当前会话ID
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [sessionStartTime, setSessionStartTime] = useState<string>('');
-
-  // Coze API 会话信息
-  const [conversationId, setConversationId] = useState<string>('');
-  const [chatId, setChatId] = useState<string>('');
 
   // 获取音频设备
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
@@ -112,34 +66,7 @@ const IoTToys = () => {
       }
     };
     getDevices();
-
-    // 加载历史记录
-    loadChatHistory();
   }, []);
-
-  // 从 localStorage 加载聊天历史
-  const loadChatHistory = () => {
-    try {
-      const userId = config.getUserId() || 'default';
-      const storedHistory = localStorage.getItem(`iot-toys-history-${userId}`);
-      if (storedHistory) {
-        const history = JSON.parse(storedHistory) as ChatSession[];
-        setChatHistory(history);
-      }
-    } catch (error) {
-      console.error('加载历史记录失败:', error);
-    }
-  };
-
-  // 保存聊天历史到 localStorage
-  const saveChatHistory = (sessions: ChatSession[]) => {
-    try {
-      const userId = config.getUserId() || 'default';
-      localStorage.setItem(`iot-toys-history-${userId}`, JSON.stringify(sessions));
-    } catch (error) {
-      console.error('保存历史记录失败:', error);
-    }
-  };
 
   // 初始化客户端
   async function initClient() {
@@ -204,28 +131,12 @@ const IoTToys = () => {
 
   // 处理消息事件
   const handleMessageEvent = () => {
-    // 监听对话创建事件，获取 conversation_id 和 chat_id
-    clientRef.current?.on(
-      WsChatEventNames.CONVERSATION_CHAT_CREATED,
-      (_, data) => {
-        const event = data as ConversationChatCreatedEvent;
-        const chatData = event.data as ChatData;
-
-        console.log('Chat created:', chatData);
-
-        if (chatData.conversation_id && chatData.id) {
-          setConversationId(chatData.conversation_id);
-          setChatId(chatData.id);
-        }
-      },
-    );
-
     // 监听消息完成事件，获取完整的对话消息（包含 role）
     clientRef.current?.on(
       WsChatEventNames.CONVERSATION_MESSAGE_COMPLETED,
       (_, data) => {
         const event = data as ConversationMessageCompletedEvent;
-        const msgData = event.data as MessageData;
+        const msgData = event.data as any;
 
         if (msgData.content) {
           const newMessage: ChatMessage = {
@@ -255,7 +166,7 @@ const IoTToys = () => {
         );
         clientRef.current?.disconnect();
         clientRef.current = undefined;
-        setCallState('ended');
+        setCallState('idle');
       },
     );
 
@@ -287,11 +198,6 @@ const IoTToys = () => {
     try {
       setIsConnecting(true);
       setCallState('calling');
-
-      // 生成新的会话ID
-      const sessionId = `session-${Date.now()}`;
-      setCurrentSessionId(sessionId);
-      setSessionStartTime(new Date().toLocaleString('zh-CN'));
 
       if (!clientRef.current) {
         await initClient();
@@ -340,74 +246,9 @@ const IoTToys = () => {
       clientRef.current = undefined;
     }
 
-    // 使用 Coze API 获取完整的消息列表
-    if (conversationId && chatId) {
-      try {
-        const messages = await getChatMessages(conversationId, chatId, localStorageKey);
-
-        // 转换消息格式
-        const chatMessages: ChatMessage[] = messages
-          .filter(msg => {
-            // 只保留真正的对话消息
-            return (
-              msg.content && // 有内容
-              (msg.type === 'question' || msg.type === 'answer') && // 是问答类型的消息
-              (msg.role === 'user' || msg.role === 'assistant') // 是用户或 AI 消息
-            );
-          })
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content,
-            time: new Date().toLocaleTimeString('zh-CN', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-          }));
-
-        // 如果有消息，保存到历史记录
-        if (chatMessages.length > 0) {
-          const session: ChatSession = {
-            id: currentSessionId,
-            userId: config.getUserId() || 'default',
-            startTime: sessionStartTime,
-            endTime: new Date().toLocaleString('zh-CN'),
-            messages: chatMessages,
-          };
-
-          // 加载现有历史记录，添加新会话
-          loadChatHistory();
-          setChatHistory(prev => {
-            const updated = [session, ...prev];
-            saveChatHistory(updated);
-            return updated;
-          });
-        }
-      } catch (error) {
-        console.error('获取历史消息失败:', error);
-        message.error('保存聊天记录失败');
-      }
-    }
-
-    // 清空状态
-    setConversationId('');
-    setChatId('');
-    setCallState('ended');
+    setCallState('idle');
     setSubtitleList([]);
     message.success('通话已结束');
-  };
-
-  // 重新拨打
-  const handleRecall = () => {
-    setCallState('idle');
-    setChatHistory([]);
-    handleStartCall();
-  };
-
-  // 返回初始状态
-  const handleBackToIdle = () => {
-    setCallState('idle');
-    setChatHistory([]);
   };
 
   // 静音/取消静音（仅显示状态，暂不实现实际静音功能）
@@ -572,69 +413,6 @@ const IoTToys = () => {
     </div>
   );
 
-  // 渲染挂断后界面
-  const renderEndedState = () => {
-    // 按会话分组历史记录
-    const groupedSessions = chatHistory.map(session => ({
-      ...session,
-    }));
-
-    return (
-      <div className="chat-history-section">
-        <div className="chat-history-header">
-          <h2>聊天记录</h2>
-          <div className="header-actions">
-            <Button
-              icon={<RobotOutlined />}
-              onClick={handleRecall}
-              size="large"
-              type="primary"
-            >
-              重新拨打
-            </Button>
-            <Button onClick={handleBackToIdle} size="large">
-              返回
-            </Button>
-          </div>
-        </div>
-
-        {groupedSessions.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📝</div>
-            <div className="empty-text">暂无聊天记录</div>
-          </div>
-        ) : (
-          <div className="chat-list">
-            {groupedSessions.map(session => (
-              <div key={session.id} className="session-group">
-                <div className="session-separator">
-                  <div className="line"></div>
-                  <div className="session-info">
-                    💬 {session.startTime} - {session.endTime}
-                  </div>
-                  <div className="line"></div>
-                </div>
-
-                {session.messages.map((message, messageIndex) => (
-                  <div
-                    key={`${session.id}-${messageIndex}`}
-                    className={`chat-item ${message.role}`}
-                  >
-                    <div className="role">
-                      {message.role === 'user' ? '👤 用户' : '🤖 AI 玩具'}
-                    </div>
-                    <div className="content">{message.content}</div>
-                    <div className="time">{message.time}</div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <Layout className="iot-toys-page">
       <div className="settings-container">
@@ -649,7 +427,6 @@ const IoTToys = () => {
         {callState === 'idle' && renderIdleState()}
         {callState === 'calling' && renderCallingState()}
         {callState === 'connected' && renderCallingState()}
-        {callState === 'ended' && renderEndedState()}
       </Content>
 
       {/* 音频配置模态框 */}
