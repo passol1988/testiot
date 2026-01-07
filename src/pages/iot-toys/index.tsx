@@ -15,7 +15,6 @@ import {
   WsToolsUtils,
 } from '@coze/api/ws-tools';
 import {
-  type ConversationMessageCompletedEvent,
   type CommonErrorEvent,
   type ConversationAudioTranscriptUpdateEvent,
 } from '@coze/api';
@@ -25,27 +24,28 @@ import { AudioConfig, type AudioConfigRef } from '../../components/audio-config'
 import './index.css';
 import getConfig from '../../utils/config';
 import Settings from '../../components/settings2';
+import ReceiveMessage from '../chat/receive-message';
+import SentenceMessage, {
+  type SentenceMessageRef,
+} from '../chat/sentence-message';
+import SendMessage from '../chat/send-message';
 
 const { Content } = Layout;
 
 type CallState = 'idle' | 'calling' | 'connected';
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  time: string;
-}
+
 
 const IoTToys = () => {
   const clientRef = useRef<WsChatClient>();
   const audioConfigRef = useRef<AudioConfigRef>(null);
+  const sentenceMessageRef = useRef<SentenceMessageRef>(null);
   const localStorageKey = 'iot-toys';
   const config = getConfig(localStorageKey);
 
   // 状态管理
   const [callState, setCallState] = useState<CallState>('idle');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [subtitleList, setSubtitleList] = useState<ChatMessage[]>([]);
 
   // 音频配置状态
   const [volume, setVolume] = useState(100);
@@ -131,29 +131,6 @@ const IoTToys = () => {
 
   // 处理消息事件
   const handleMessageEvent = () => {
-    // 监听消息完成事件，获取完整的对话消息（包含 role）
-    clientRef.current?.on(
-      WsChatEventNames.CONVERSATION_MESSAGE_COMPLETED,
-      (_, data) => {
-        const event = data as ConversationMessageCompletedEvent;
-        const msgData = event.data as any;
-
-        if (msgData.content) {
-          const newMessage: ChatMessage = {
-            role: msgData.role,
-            content: msgData.content,
-            time: new Date().toLocaleTimeString('zh-CN', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-            }),
-          };
-
-          setSubtitleList(prev => [...prev, newMessage]);
-        }
-      },
-    );
-
     // 错误处理
     clientRef.current?.on(
       WsChatEventNames.SERVER_ERROR,
@@ -228,7 +205,6 @@ const IoTToys = () => {
       await clientRef.current?.connect({ chatUpdate });
 
       setCallState('connected');
-      setSubtitleList([]); // 清空字幕列表
       setIsConnecting(false);
       message.success('通话已连接');
     } catch (error) {
@@ -247,7 +223,6 @@ const IoTToys = () => {
     }
 
     setCallState('idle');
-    setSubtitleList([]);
     message.success('通话已结束');
   };
 
@@ -334,27 +309,26 @@ const IoTToys = () => {
             </div>
           )}
 
-          <div className="subtitle-section">
-            <h3>实时字幕</h3>
-            {subtitleList.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">💬</div>
-                <div className="empty-text">等待对话内容...</div>
-              </div>
-            ) : (
-              subtitleList.map((item, index) => (
-                <div
-                  key={index}
-                  className={`subtitle-item ${item.role}`}
-                >
-                  <div className="role">
-                    {item.role === 'user' ? '👤 用户' : '🤖 AI 玩具'}
-                  </div>
-                  <div className="content">{item.content}</div>
-                </div>
-              ))
-            )}
+          {/* 发送文本消息 */}
+          <SendMessage
+            isConnected={callState === 'connected'}
+            clientRef={clientRef}
+            onSendText={(text: string) => {
+              sentenceMessageRef.current?.addMessage(text);
+            }}
+          />
+
+          {/* 显示实时识别结果 */}
+          <div style={{ margin: '16px 0' }}>
+            语音识别结果：{transcript}
           </div>
+
+          {/* 根据回复模式选择对应的消息组件 */}
+          {'stream' === 'stream' ? (
+            <ReceiveMessage clientRef={clientRef} />
+          ) : (
+            <SentenceMessage ref={sentenceMessageRef} clientRef={clientRef} />
+          )}
 
           <div className="control-panel">
             {/* 音量控制 */}
