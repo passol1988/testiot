@@ -1,7 +1,15 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout } from 'antd';
-import { PhoneOutlined, PhoneFilled, RobotOutlined } from '@ant-design/icons';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip } from 'antd';
+import {
+  PhoneOutlined,
+  PhoneFilled,
+  RobotOutlined,
+  SoundOutlined,
+  SoundFilled,
+  AudioOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import {
   WsChatClient,
   WsChatEventNames,
@@ -11,7 +19,10 @@ import {
   type ConversationMessageCompletedEvent,
   type ConversationChatCreatedEvent,
   type CommonErrorEvent,
+  type ConversationAudioTranscriptUpdateEvent,
 } from '@coze/api';
+
+import { AudioConfig, type AudioConfigRef } from '../../components/audio-config';
 
 // Coze API 类型定义
 interface MessageData {
@@ -64,6 +75,7 @@ interface ChatSession {
 
 const IoTToys = () => {
   const clientRef = useRef<WsChatClient>();
+  const audioConfigRef = useRef<AudioConfigRef>(null);
   const localStorageKey = 'iot-toys';
   const config = getConfig(localStorageKey);
 
@@ -72,6 +84,13 @@ const IoTToys = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [subtitleList, setSubtitleList] = useState<ChatMessage[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
+
+  // 音频配置状态
+  const [volume, setVolume] = useState(100);
+  const [isMuted, setIsMuted] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
   // 当前会话ID
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
@@ -87,6 +106,7 @@ const IoTToys = () => {
   useEffect(() => {
     const getDevices = async () => {
       const devices = await WsToolsUtils.getAudioDevices();
+      setInputDevices(devices.audioInputs);
       if (devices.audioInputs.length > 0) {
         setSelectedInputDevice(devices.audioInputs[0].deviceId);
       }
@@ -136,16 +156,45 @@ const IoTToys = () => {
       throw new Error('请先配置智能体ID');
     }
 
+    const audioConfig = audioConfigRef.current?.getSettings();
+    console.log('audioConfig', audioConfig);
+
     const client = new WsChatClient({
       token: config.getPat(),
       baseWsURL: config.getBaseWsUrl(),
       allowPersonalAccessTokenInBrowser: true,
       botId: config.getBotId(),
+      debug: audioConfig?.debug,
       voiceId: config.getVoiceId(),
       workflowId: config.getWorkflowId() || undefined,
+      aiDenoisingConfig: !audioConfig?.noiseSuppression
+        ? {
+            mode: audioConfig?.denoiseMode,
+            level: audioConfig?.denoiseLevel,
+            assetsPath:
+              'https://lf3-static.bytednsdoc.com/obj/eden-cn/613eh7lpqvhpeuloz/websocket',
+          }
+        : undefined,
+      audioCaptureConfig: {
+        echoCancellation: audioConfig?.echoCancellation,
+        noiseSuppression: audioConfig?.noiseSuppression,
+        autoGainControl: audioConfig?.autoGainControl,
+      },
+      wavRecordConfig: {
+        enableSourceRecord: false,
+        enableDenoiseRecord: false,
+      },
       deviceId: selectedInputDevice || undefined,
       audioMutedDefault: false,
+      enableLocalLoopback: audioConfig?.isHuaweiMobile,
     });
+
+    if (
+      !audioConfig?.noiseSuppression &&
+      !WsToolsUtils.checkDenoiserSupport()
+    ) {
+      message.info('当前浏览器不支持AI降噪');
+    }
 
     clientRef.current = client;
 
@@ -209,6 +258,28 @@ const IoTToys = () => {
         setCallState('ended');
       },
     );
+
+    // 处理音频转录更新事件
+    clientRef.current?.on(
+      WsChatEventNames.CONVERSATION_AUDIO_TRANSCRIPT_UPDATE,
+      (_, data) => {
+        const event = data as ConversationAudioTranscriptUpdateEvent;
+        if (event.data.content) {
+          setTranscript(event.data.content);
+        }
+      },
+    );
+
+    // 处理音频状态变化
+    clientRef.current?.on(WsChatEventNames.AUDIO_MUTED, () => {
+      console.log('麦克风已关闭');
+      setIsMuted(true);
+    });
+
+    clientRef.current?.on(WsChatEventNames.AUDIO_UNMUTED, () => {
+      console.log('麦克风已打开');
+      setIsMuted(false);
+    });
   };
 
   // 开始通话
@@ -332,6 +403,20 @@ const IoTToys = () => {
     setChatHistory([]);
   };
 
+  // 静音/取消静音（仅显示状态，暂不实现实际静音功能）
+  const handleToggleMute = () => {
+    // TODO: 实现静音功能，等待 SDK 支持
+    message.info('静音功能开发中');
+  };
+
+  // 音量控制
+  const handleVolumeChange = (value: number) => {
+    setVolume(value);
+    if (clientRef.current) {
+      clientRef.current.setPlaybackVolume(value / 100);
+    }
+  };
+
   // 清理资源
   useEffect(() => {
     return () => {
@@ -373,15 +458,33 @@ const IoTToys = () => {
               <span className="status-dot"></span>
               <span>通话中</span>
             </div>
-            <Settings
-              onSettingsChange={handleSettingsChange}
-              localStorageKey={localStorageKey}
-              fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'user_id']}
-              className="settings-button"
-            />
+            <div className="header-actions">
+              <Button
+                type="text"
+                icon={<SettingOutlined />}
+                onClick={() => setIsConfigModalOpen(true)}
+                className="config-btn"
+              >
+                配置
+              </Button>
+              <Settings
+                onSettingsChange={handleSettingsChange}
+                localStorageKey={localStorageKey}
+                fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'user_id']}
+                className="settings-button"
+              />
+            </div>
           </div>
 
           <div className="assistant-avatar">🤖</div>
+
+          {/* 实时识别结果 */}
+          {transcript && (
+            <div className="transcript-section">
+              <div className="transcript-label">🎤 实时识别</div>
+              <div className="transcript-content">{transcript}</div>
+            </div>
+          )}
 
           <div className="subtitle-section">
             <h3>实时字幕</h3>
@@ -403,6 +506,53 @@ const IoTToys = () => {
                 </div>
               ))
             )}
+          </div>
+
+          <div className="control-panel">
+            {/* 音量控制 */}
+            <div className="volume-control">
+              <Tooltip title={`音量: ${volume}%`}>
+                <div className="volume-icon">
+                  {volume > 0 ? <SoundFilled /> : <SoundOutlined />}
+                </div>
+              </Tooltip>
+              <Slider
+                min={0}
+                max={100}
+                value={volume}
+                onChange={handleVolumeChange}
+                className="volume-slider"
+                disabled={isMuted}
+              />
+              <span className="volume-value">{volume}%</span>
+            </div>
+
+            {/* 静音按钮 */}
+            <Tooltip title={isMuted ? '取消静音' : '静音'}>
+              <Button
+                type={isMuted ? 'primary' : 'default'}
+                icon={<AudioOutlined />}
+                onClick={handleToggleMute}
+                className="mute-button"
+              >
+                {isMuted ? '取消静音' : '静音'}
+              </Button>
+            </Tooltip>
+
+            {/* 输入设备选择 */}
+            <Select
+              placeholder="选择麦克风"
+              value={selectedInputDevice}
+              onChange={setSelectedInputDevice}
+              className="device-select"
+              suffixIcon={<SoundOutlined />}
+            >
+              {inputDevices.map(device => (
+                <Select.Option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </Select.Option>
+              ))}
+            </Select>
           </div>
 
           <div className="control-buttons">
@@ -494,6 +644,22 @@ const IoTToys = () => {
         {callState === 'connected' && renderCallingState()}
         {callState === 'ended' && renderEndedState()}
       </Content>
+
+      {/* 音频配置模态框 */}
+      <Modal
+        title="音频配置"
+        open={isConfigModalOpen}
+        onCancel={() => setIsConfigModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsConfigModalOpen(false)}>
+            关闭
+          </Button>,
+        ]}
+        width={600}
+        className="audio-config-modal"
+      >
+        <AudioConfig clientRef={clientRef} ref={audioConfigRef} />
+      </Modal>
     </Layout>
   );
 };
