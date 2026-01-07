@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   RobotOutlined,
   UploadOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import {
   WsChatClient,
@@ -233,6 +234,33 @@ const IoTToys = () => {
   const handleOpenBotConfig = () => {
     setIsBotConfigModalOpen(true);
     fetchBotInfo();
+  };
+
+  // 下载项目文件
+  const handleDownloadProject = async () => {
+    try {
+      message.loading({ content: '正在准备下载...', key: 'download' });
+      const response = await fetch('/api/download');
+
+      if (!response.ok) {
+        throw new Error('下载失败');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'coze-project.tar.gz';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      message.success({ content: '下载成功', key: 'download', duration: 2 });
+    } catch (error) {
+      console.error('下载失败:', error);
+      message.error({ content: '下载失败，请稍后重试', key: 'download' });
+    }
   };
 
   // 对话模式和回复模式
@@ -755,6 +783,13 @@ const IoTToys = () => {
             onClick={handleOpenBotConfig}
           >
             智能体配置
+          </Button>
+          <Button
+            type="default"
+            icon={<DownloadOutlined />}
+            onClick={handleDownloadProject}
+          >
+            下载项目
           </Button>
         </Space>
       </div>

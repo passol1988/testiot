@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "run-preinstall": "node scripts/preinstall.cjs",
     "start": "vite --host",
+    "dev": "vite --host --port 5000",
     "test": "exit 0"
   },
   "dependencies": {

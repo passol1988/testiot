@@ -28,6 +28,28 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
+  // 处理文件下载请求
+  if (req.url === '/api/download' && req.method === 'GET') {
+    const filePath = path.join(__dirname, 'coze-project.tar.gz');
+    const fileName = 'coze-project.tar.gz';
+
+    if (fs.existsSync(filePath)) {
+      const stat = fs.statSync(filePath);
+      res.writeHead(200, {
+        'Content-Type': 'application/gzip',
+        'Content-Length': stat.size,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+      });
+
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'File not found' }));
+    }
+    return;
+  }
+
   let filePath = path.join(distDir, req.url === '/' ? 'index.html' : req.url);
 
   const extname = path.extname(filePath);
