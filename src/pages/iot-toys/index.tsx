@@ -119,14 +119,16 @@ const IoTToys = () => {
       }
 
       const data = await response.json();
+      console.log('获取智能体信息响应:', data);
       botForm.setFieldsValue({
-        bot_name: data.bot_name || '',
+        name: data.name || data.bot_name || '',
         description: data.description || '',
         icon_url: data.icon_url || '',
         prompt: data.prompt || '',
         prologue: data.prologue || '',
       });
       setAvatarUrl(data.icon_url || '');
+      message.success('智能体信息已加载');
     } catch (error) {
       console.error('获取智能体信息失败:', error);
       message.error('获取智能体信息失败');
@@ -176,22 +178,36 @@ const IoTToys = () => {
   // 更新智能体
   const handleUpdateBot = async (values: any) => {
     try {
+      console.log('提交的数据:', values);
+
+      const updateData = {
+        bot_id: config.getBotId(),
+        name: values.name,
+        description: values.description,
+        icon_url: values.icon_url,
+        prompt: values.prompt,
+        prologue: values.prologue,
+      };
+
+      console.log('发送给API的数据:', updateData);
+
       const response = await fetch('https://api.coze.cn/v1/bot/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${config.getPat()}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          bot_id: config.getBotId(),
-          ...values,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
-        throw new Error('更新智能体失败');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('更新智能体失败:', errorData);
+        throw new Error(`更新智能体失败: ${response.status}`);
       }
 
+      const result = await response.json();
+      console.log('更新智能体响应:', result);
       message.success('智能体更新成功');
       setIsBotConfigModalOpen(false);
     } catch (error) {
@@ -766,7 +782,7 @@ const IoTToys = () => {
           onFinish={handleUpdateBot}
           layout="vertical"
           initialValues={{
-            bot_name: '',
+            name: '',
             description: '',
             icon_url: '',
             prompt: '',
@@ -774,7 +790,7 @@ const IoTToys = () => {
           }}
         >
           <Form.Item
-            name="bot_name"
+            name="name"
             label="智能体名称"
             rules={[{ required: true, message: '请输入智能体名称' }]}
           >
