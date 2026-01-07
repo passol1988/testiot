@@ -11,13 +11,20 @@
 }
 
 .iot-toys-container {
-  max-width: 900px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 20px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .iot-toys-container {
+    padding: 40px 20px;
+  }
 }
 
 /* 初始状态界面 */
@@ -50,6 +57,13 @@
   margin: 0;
   font-weight: 300;
   letter-spacing: 0.02em;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .call-button {
@@ -115,16 +129,26 @@
 
 /* 通话中界面 */
 .calling-section {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 32px;
-  padding: 32px;
+  padding: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
               0 0 0 1px rgba(255, 255, 255, 0.1);
-  min-height: 700px;
+  min-height: 600px;
   display: flex;
   flex-direction: column;
   animation: slideUp 0.5s ease-out;
+}
+
+@media (min-width: 768px) {
+  .calling-section {
+    padding: 32px;
+    min-height: 700px;
+  }
 }
 
 @keyframes slideUp {
@@ -145,6 +169,8 @@
   margin-bottom: 24px;
   padding-bottom: 20px;
   border-bottom: 2px solid #f0f0f0;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .call-status {
@@ -174,6 +200,26 @@
     opacity: 0.5;
     transform: scale(1.2);
   }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mode-selector {
+  flex-shrink: 0;
+}
+
+.config-btn {
+  color: #666;
+  font-size: 14px;
+}
+
+.config-btn:hover {
+  color: #1890ff;
 }
 
 .assistant-avatar {
@@ -377,228 +423,129 @@
   z-index: 1;
 }
 
-/* 聊天记录界面 */
-.chat-history-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 32px;
-  padding: 40px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
-              0 0 0 1px rgba(255, 255, 255, 0.1);
-  min-height: 700px;
-  animation: slideUp 0.5s ease-out;
-}
-
-.chat-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #f0f0f0;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.chat-history-header h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.chat-history-header .header-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.chat-list {
-  max-height: 550px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.chat-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.chat-list::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.chat-list::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.session-group {
+/* 控制面板 */
+.control-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.session-separator {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 0;
-}
-
-.session-separator .line {
-  flex: 1;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, #e0e0e0 50%, transparent 100%);
-}
-
-.session-separator .session-info {
-  padding: 8px 20px;
-  background: #f5f5f5;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.chat-item {
+  margin-bottom: 24px;
   padding: 20px;
   background: #f8f9fa;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  animation: fadeInUp 0.4s ease;
+  border-radius: 16px;
 }
 
-.chat-item:hover {
-  background: #f0f0f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.chat-item.user {
-  background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
-  border-left: 4px solid #1890ff;
-}
-
-.chat-item.assistant {
-  background: linear-gradient(135deg, #f6ffed 0%, #fcffe6 100%);
-  border-left: 4px solid #52c41a;
-}
-
-.chat-item .role {
-  font-size: 15px;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 12px;
+.volume-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.chat-item.user .role {
-  color: #1890ff;
+.volume-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #666;
 }
 
-.chat-item.assistant .role {
-  color: #52c41a;
+.volume-slider {
+  flex: 1;
+  margin: 0 12px;
 }
 
-.chat-item .content {
-  font-size: 16px;
-  color: #1a1a1a;
-  line-height: 1.6;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-}
-
-.chat-item .time {
-  font-size: 13px;
-  color: #999;
-  margin-top: 12px;
+.volume-value {
+  min-width: 45px;
   text-align: right;
-  font-weight: 500;
-}
-
-/* 加载状态 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  gap: 24px;
-}
-
-.loading-ring {
-  display: inline-block;
-  width: 60px;
-  height: 60px;
-}
-
-.loading-ring::after {
-  content: ' ';
-  display: block;
-  width: 48px;
-  height: 48px;
-  margin: 6px;
-  border-radius: 50%;
-  border: 4px solid #667eea;
-  border-color: #667eea transparent #667eea transparent;
-  animation: ring 1.2s linear infinite;
-}
-
-@keyframes ring {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
   color: #666;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 14px;
 }
 
-.empty-state {
+.device-select {
+  width: 200px;
+}
+
+@media (max-width: 768px) {
+  .device-select {
+    width: 100%;
+  }
+}
+
+/* 按键说话功能 */
+.voice-button {
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #333;
+  font-size: 16px;
+  user-select: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-button.recording {
+  background-color: #e0e0e0;
+  color: #ff3b30;
+}
+
+.recording-status {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  color: #fff;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  color: #999;
-  gap: 16px;
 }
 
-.empty-state .empty-icon {
-  font-size: 64px;
-  opacity: 0.5;
+.recording-time {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
-.empty-state .empty-text {
-  font-size: 18px;
-  font-weight: 500;
+.recording-progress-container {
+  width: 90%;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.recording-progress {
+  height: 100%;
+  background-color: #ff3b30;
+  border-radius: 3px;
+  transition: width 0.3s linear;
+}
+
+.recording-tip {
+  font-size: 14px;
+  color: #fff;
+}
+
+.cancel-tip {
+  color: #ff3b30;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  /* 主容器优化 */
   .iot-toys-container {
-    padding: 20px 16px;
+    padding: 16px;
   }
 
+  /* 初始状态优化 */
   .hero-section {
-    padding: 32px 16px;
     gap: 24px;
+    padding: 24px 16px;
   }
 
   .call-button {
@@ -614,305 +561,35 @@
     font-size: 16px;
   }
 
+  /* 通话界面优化 */
   .calling-section,
   .chat-history-section {
     padding: 20px;
-    border-radius: 24px;
-    min-height: 600px;
+    min-height: auto;
   }
 
-  .assistant-avatar {
-    width: 100px;
-    height: 100px;
-    font-size: 40px;
-    margin-bottom: 24px;
-  }
-
-  .chat-history-header {
+  .call-header {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
   }
 
-  .chat-history-header .header-actions {
-    flex-direction: column;
-  }
-
-  .subtitle-item.user,
-  .subtitle-item.assistant {
-    max-width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  .control-buttons .btn-hangup {
-    width: 80px;
-    height: 80px;
-    font-size: 28px;
-  }
-
-  .settings-container {
-    top: 16px;
-    right: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-section h1 {
-    font-size: 28px;
-  }
-
-  .hero-section p {
-    font-size: 16px;
-  }
-
-  .chat-history-section {
-    padding: 16px;
-  }
-
-  .chat-item {
-    padding: 16px;
-  }
-}
-
-/* 实时识别结果区域 */
-.transcript-section {
-  background: linear-gradient(135deg, #fff7e6 0%, #fffbe6 100%);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
-  border-left: 4px solid #faad14;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.transcript-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #d48806;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.transcript-content {
-  font-size: 16px;
-  color: #1a1a1a;
-  line-height: 1.6;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* 控制面板 */
-.control-panel {
-  background: #f8f9fa;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* 音量控制 */
-.volume-control {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.volume-icon {
-  font-size: 20px;
-  color: #666;
-  min-width: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.volume-slider {
-  flex: 1;
-}
-
-.volume-slider :global(.ant-slider-rail) {
-  background: #e0e0e0;
-}
-
-.volume-slider :global(.ant-slider-track) {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-}
-
-.volume-slider :global(.ant-slider-handle) {
-  border: 3px solid #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.volume-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #666;
-  min-width: 48px;
-  text-align: right;
-}
-
-/* 静音按钮 */
-.mute-button {
-  width: 100%;
-  height: 44px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.mute-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.mute-button:active {
-  transform: translateY(0);
-}
-
-/* 设备选择 */
-.device-select {
-  width: 100%;
-}
-
-.device-select :global(.ant-select-selector) {
-  border-radius: 12px !important;
-  padding: 8px 12px !important;
-  font-size: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.device-select :global(.ant-select-selection-placeholder) {
-  color: #999;
-}
-
-/* 配置按钮 */
-.config-btn {
-  font-size: 14px;
-  font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.3s ease;
-}
-
-.config-btn:hover {
-  background: #f0f0f0;
-  transform: translateY(-1px);
-}
-
-/* 头部操作区域 */
-.header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-/* 配置模态框 */
-.audio-config-modal :global(.ant-modal-content) {
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.audio-config-modal :global(.ant-modal-header) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px 24px;
-}
-
-.audio-config-modal :global(.ant-modal-title) {
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.audio-config-modal :global(.ant-modal-body) {
-  padding: 24px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.audio-config-modal :global(.ant-modal-footer) {
-  padding: 16px 24px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 优化移动端适配 */
-@media (max-width: 768px) {
-  /* 通话界面优化 */
-  .call-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
+  .call-status {
+    font-size: 18px;
   }
 
   .header-actions {
-    flex-direction: column;
-    gap: 8px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .mode-selector {
+    flex: 1;
+    min-width: 140px;
   }
 
   .config-btn {
     width: 100%;
-    justify-content: center;
-  }
-
-  /* 控制面板优化 */
-  .control-panel {
-    padding: 16px;
-    gap: 12px;
-  }
-
-  .volume-control {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .volume-slider {
-    min-width: 100%;
-  }
-
-  /* 字幕区域优化 */
-  .subtitle-section {
-    padding: 16px;
-    max-height: 300px;
-  }
-
-  .subtitle-item {
-    padding: 12px 16px;
-  }
-
-  .subtitle-item .content {
-    font-size: 15px;
-  }
-
-  /* 实时识别结果优化 */
-  .transcript-section {
-    padding: 16px;
-  }
-
-  .transcript-content {
-    font-size: 15px;
   }
 
   /* 助手头像优化 */
@@ -920,6 +597,21 @@
     width: 80px;
     height: 80px;
     font-size: 36px;
+  }
+
+  /* 控制面板优化 */
+  .control-panel {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .volume-control {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .volume-slider {
+    margin: 8px 0;
   }
 
   /* 控制按钮优化 */
