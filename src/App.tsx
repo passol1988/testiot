@@ -180,27 +180,29 @@ function MainLayout() {
             </div>
 
             <div className="header-right">
-              <Space size={2} style={{ display: 'flex' }}>
-                <Button
-                  type="link"
-                  icon={<FileTextOutlined />}
-                  href="https://github.com/coze-dev/coze-js/discussions"
-                  target="_blank"
-                  style={{ padding: '0 8px' }}
-                >
-                  文档
-                </Button>
+              {location.pathname !== '/iot-toys' && (
+                <Space size={2} style={{ display: 'flex' }}>
+                  <Button
+                    type="link"
+                    icon={<FileTextOutlined />}
+                    href="https://github.com/coze-dev/coze-js/discussions"
+                    target="_blank"
+                    style={{ padding: '0 8px' }}
+                  >
+                    文档
+                  </Button>
 
-                <Button
-                  type="link"
-                  icon={<GithubOutlined />}
-                  href="https://github.com/coze-dev/coze-js/tree/main/examples/realtime-websocket"
-                  target="_blank"
-                  style={{ padding: '0 8px' }}
-                >
-                  GitHub
-                </Button>
-              </Space>
+                  <Button
+                    type="link"
+                    icon={<GithubOutlined />}
+                    href="https://github.com/coze-dev/coze-js/tree/main/examples/realtime-websocket"
+                    target="_blank"
+                    style={{ padding: '0 8px' }}
+                  >
+                    GitHub
+                  </Button>
+                </Space>
+              )}
             </div>
           </div>
         </Header>

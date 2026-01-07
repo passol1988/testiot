@@ -6,7 +6,6 @@ import {
   PhoneFilled,
   SoundOutlined,
   SoundFilled,
-  AudioOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
@@ -23,7 +22,6 @@ import { AudioConfig, type AudioConfigRef } from '../../components/audio-config'
 
 import './index.css';
 import getConfig from '../../utils/config';
-import Settings from '../../components/settings2';
 import ReceiveMessage from '../chat/receive-message';
 import SentenceMessage, {
   type SentenceMessageRef,
@@ -49,7 +47,6 @@ const IoTToys = () => {
 
   // 音频配置状态
   const [volume, setVolume] = useState(100);
-  const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -157,17 +154,6 @@ const IoTToys = () => {
         }
       },
     );
-
-    // 处理音频状态变化
-    clientRef.current?.on(WsChatEventNames.AUDIO_MUTED, () => {
-      console.log('麦克风已关闭');
-      setIsMuted(true);
-    });
-
-    clientRef.current?.on(WsChatEventNames.AUDIO_UNMUTED, () => {
-      console.log('麦克风已打开');
-      setIsMuted(false);
-    });
   };
 
   // 开始通话
@@ -226,12 +212,6 @@ const IoTToys = () => {
     message.success('通话已结束');
   };
 
-  // 静音/取消静音（仅显示状态，暂不实现实际静音功能）
-  const handleToggleMute = () => {
-    // TODO: 实现静音功能，等待 SDK 支持
-    message.info('静音功能开发中');
-  };
-
   // 音量控制
   const handleVolumeChange = (value: number) => {
     setVolume(value);
@@ -249,16 +229,21 @@ const IoTToys = () => {
     };
   }, []);
 
-  function handleSettingsChange() {
-    console.log('Settings changed');
-    window.location.reload();
-  }
-
   // 渲染初始状态界面
   const renderIdleState = () => (
     <div className="hero-section">
       <h1>生活物联网 AI 玩具演示平台</h1>
       <p>体验智能对话，开启物联网新时代</p>
+      <div className="button-group">
+        <Button
+          type="primary"
+          icon={<SettingOutlined />}
+          onClick={() => setIsConfigModalOpen(true)}
+          style={{ marginBottom: 20 }}
+        >
+          配置
+        </Button>
+      </div>
       <button className="call-button" onClick={handleStartCall}>
         <span className="phone-icon"><PhoneOutlined /></span>
         <span className="button-text">开始对话</span>
@@ -290,24 +275,10 @@ const IoTToys = () => {
               >
                 配置
               </Button>
-              <Settings
-                onSettingsChange={handleSettingsChange}
-                localStorageKey={localStorageKey}
-                fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'user_id']}
-                className="settings-button"
-              />
             </div>
           </div>
 
           <div className="assistant-avatar">🤖</div>
-
-          {/* 实时识别结果 */}
-          {transcript && (
-            <div className="transcript-section">
-              <div className="transcript-label">🎤 实时识别</div>
-              <div className="transcript-content">{transcript}</div>
-            </div>
-          )}
 
           {/* 发送文本消息 */}
           <SendMessage
@@ -344,22 +315,9 @@ const IoTToys = () => {
                 value={volume}
                 onChange={handleVolumeChange}
                 className="volume-slider"
-                disabled={isMuted}
               />
               <span className="volume-value">{volume}%</span>
             </div>
-
-            {/* 静音按钮 */}
-            <Tooltip title={isMuted ? '取消静音' : '静音'}>
-              <Button
-                type={isMuted ? 'primary' : 'default'}
-                icon={<AudioOutlined />}
-                onClick={handleToggleMute}
-                className="mute-button"
-              >
-                {isMuted ? '取消静音' : '静音'}
-              </Button>
-            </Tooltip>
 
             {/* 输入设备选择 */}
             <Select
@@ -389,14 +347,6 @@ const IoTToys = () => {
 
   return (
     <Layout className="iot-toys-page">
-      <div className="settings-container">
-        <Settings
-          onSettingsChange={handleSettingsChange}
-          localStorageKey={localStorageKey}
-          fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'user_id']}
-          className="settings-button"
-        />
-      </div>
       <Content className="iot-toys-container">
         {callState === 'idle' && renderIdleState()}
         {callState === 'calling' && renderCallingState()}
