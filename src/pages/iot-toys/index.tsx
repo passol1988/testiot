@@ -1,12 +1,14 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout, Select, Modal, Slider, Tooltip } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
   SoundOutlined,
   SoundFilled,
   SettingOutlined,
+  RobotOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import {
   WsChatClient,
@@ -80,10 +82,128 @@ const IoTToys = () => {
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
 
+  // 智能体配置状态
+  const [isBotConfigModalOpen, setIsBotConfigModalOpen] = useState(false);
+  const [botForm] = Form.useForm();
+  const [loadingBotInfo, setLoadingBotInfo] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+
   // 处理 Settings 变化
   const handleSettingsChange = () => {
     console.log('Settings changed');
     // 可以在这里刷新页面或重新加载配置
+  };
+
+  // 获取智能体信息
+  const fetchBotInfo = async () => {
+    const botId = config.getBotId();
+    if (!botId) {
+      message.error('请先配置智能体ID');
+      return;
+    }
+
+    setLoadingBotInfo(true);
+    try {
+      const response = await fetch(
+        `https://api.coze.cn/v1/bots/${botId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${config.getPat()}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('获取智能体信息失败');
+      }
+
+      const data = await response.json();
+      botForm.setFieldsValue({
+        bot_name: data.bot_name || '',
+        description: data.description || '',
+        icon_url: data.icon_url || '',
+        prompt: data.prompt || '',
+        prologue: data.prologue || '',
+      });
+      setAvatarUrl(data.icon_url || '');
+    } catch (error) {
+      console.error('获取智能体信息失败:', error);
+      message.error('获取智能体信息失败');
+    } finally {
+      setLoadingBotInfo(false);
+    }
+  };
+
+  // 上传头像
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        'https://api.coze.cn/v1/files/upload',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.getPat()}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('上传头像失败');
+      }
+
+      const data = await response.json();
+      if (data.data && data.data.id) {
+        const fileUrl = `https://files.coze.cn/${data.data.id}`;
+        botForm.setFieldValue('icon_url', fileUrl);
+        setAvatarUrl(fileUrl);
+        message.success('头像上传成功');
+      }
+    } catch (error) {
+      console.error('上传头像失败:', error);
+      message.error('上传头像失败');
+    } finally {
+      setUploadingAvatar(false);
+    }
+    return false; // 阻止默认上传行为
+  };
+
+  // 更新智能体
+  const handleUpdateBot = async (values: any) => {
+    try {
+      const response = await fetch('https://api.coze.cn/v1/bot/update', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${config.getPat()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bot_id: config.getBotId(),
+          ...values,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('更新智能体失败');
+      }
+
+      message.success('智能体更新成功');
+      setIsBotConfigModalOpen(false);
+    } catch (error) {
+      console.error('更新智能体失败:', error);
+      message.error('更新智能体失败');
+    }
+  };
+
+  // 打开智能体配置模态框
+  const handleOpenBotConfig = () => {
+    setIsBotConfigModalOpen(true);
+    fetchBotInfo();
   };
 
   // 对话模式和回复模式
@@ -590,12 +710,23 @@ const IoTToys = () => {
 
   return (
     <Layout className="iot-toys-page">
-      <Settings
-        onSettingsChange={handleSettingsChange}
-        localStorageKey={localStorageKey}
-        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
-        className="settings-button"
-      />
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, display: 'flex', gap: 8 }}>
+        <Settings
+          onSettingsChange={handleSettingsChange}
+          localStorageKey={localStorageKey}
+          fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
+          className="settings-button"
+          buttonText="基础配置"
+          modalTitle="基础配置"
+        />
+        <Button
+          type="default"
+          icon={<RobotOutlined />}
+          onClick={handleOpenBotConfig}
+        >
+          智能体配置
+        </Button>
+      </div>
       <Content className="iot-toys-container">
         {callState === 'idle' && renderIdleState()}
         {callState === 'calling' && renderCallingState()}
@@ -618,6 +749,72 @@ const IoTToys = () => {
             JSON.stringify(getChatUpdateConfig(turnDetectionType), null, 2)
           }
         />
+      </Modal>
+
+      {/* 智能体配置模态框 */}
+      <Modal
+        title="智能体配置"
+        open={isBotConfigModalOpen}
+        onCancel={() => setIsBotConfigModalOpen(false)}
+        onOk={() => botForm.submit()}
+        width={600}
+        destroyOnClose
+        confirmLoading={loadingBotInfo}
+      >
+        <Form
+          form={botForm}
+          onFinish={handleUpdateBot}
+          layout="vertical"
+          initialValues={{
+            bot_name: '',
+            description: '',
+            icon_url: '',
+            prompt: '',
+            prologue: '',
+          }}
+        >
+          <Form.Item
+            name="bot_name"
+            label="智能体名称"
+            rules={[{ required: true, message: '请输入智能体名称' }]}
+          >
+            <Input placeholder="请输入智能体名称" />
+          </Form.Item>
+
+          <Form.Item name="description" label="描述">
+            <Input.TextArea placeholder="请输入智能体描述" rows={3} />
+          </Form.Item>
+
+          <Form.Item name="icon_url" label="头像">
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              {avatarUrl && (
+                <img
+                  src={avatarUrl}
+                  alt="头像"
+                  style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }}
+                />
+              )}
+              <Upload
+                beforeUpload={handleAvatarUpload}
+                showUploadList={false}
+                accept="image/*"
+              >
+                <Button icon={<UploadOutlined />} loading={uploadingAvatar}>
+                  {avatarUrl ? '更换头像' : '上传头像'}
+                </Button>
+              </Upload>
+            </div>
+            <Input style={{ marginTop: 8 }} placeholder="头像URL" />
+          </Form.Item>
+
+          <Form.Item name="prompt" label="人设与回复逻辑">
+            <Input.TextArea placeholder="请输入人设与回复逻辑" rows={6} />
+          </Form.Item>
+
+          <Form.Item name="prologue" label="开场白">
+            <Input.TextArea placeholder="请输入开场白" rows={3} />
+          </Form.Item>
+        </Form>
       </Modal>
     </Layout>
   );

@@ -33,7 +33,13 @@ const { Header, Content, Sider } = Layout;
 const isHidden = location.hostname === 'www.coze.cn';
 const menuItems = [
   {
-    key: '/',
+    key: '/iot-toys',
+    icon: <RobotOutlined />,
+    label: '生活物联网 AI 玩具',
+    title: '生活物联网 AI 玩具演示平台',
+  },
+  {
+    key: '/chat',
     icon: <MessageOutlined />,
     label: '实时语音对话',
     title: '实时语音对话 (Chat) 演示',
@@ -49,12 +55,6 @@ const menuItems = [
     icon: <ExperimentOutlined />,
     label: '语音合成',
     title: '语音合成 (TTS) 演示',
-  },
-  {
-    key: '/iot-toys',
-    icon: <RobotOutlined />,
-    label: '生活物联网 AI 玩具',
-    title: '生活物联网 AI 玩具演示平台',
   },
   {
     key: '/simult',
@@ -217,7 +217,8 @@ function MainLayout() {
             }}
           >
             <Routes>
-              <Route path="/" element={<Chat />} />
+              <Route path="/" element={<IoTToys />} />
+              <Route path="/chat" element={<Chat />} />
               <Route path="/audio-test" element={<AudioTest />} />
               <Route path="/transcription" element={<Transcription />} />
               <Route path="/speech" element={<Speech />} />

@@ -23,11 +23,15 @@ const Settings2 = ({
   onSettingsChange,
   localStorageKey,
   className,
+  buttonText = 'Settings',
+  modalTitle = 'Settings',
 }: {
   onSettingsChange: () => void;
   localStorageKey: string;
   fields: string[];
   className?: string;
+  buttonText?: string;
+  modalTitle?: string;
 }) => {
   const config = getConfig(localStorageKey);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
@@ -192,10 +196,10 @@ const Settings2 = ({
         onClick={() => setIsSettingsVisible(true)}
         className={className}
       >
-        Settings
+        {buttonText}
       </Button>
       <Modal
-        title="Settings"
+        title={modalTitle}
         open={isSettingsVisible}
         onCancel={() => setIsSettingsVisible(false)}
         onOk={() => form.submit()}
