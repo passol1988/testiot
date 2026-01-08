@@ -73,18 +73,20 @@ const Settings2 = ({
     let userId = config.getUserId();
 
     // 从当前登录用户获取 userId（如果本地存储中没有）
-    if (!userId) {
-      const currentUser = localStorage.getItem('currentUser');
-      if (currentUser) {
-        try {
+    try {
+      if (!userId) {
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
           const user = JSON.parse(currentUser);
           userId = user.userId || '';
           // 保存到 localStorage
-          localStorage.setItem(`${localStorageKey}_user_id`, userId);
-        } catch (error) {
-          console.error('解析用户信息失败:', error);
+          if (userId) {
+            localStorage.setItem(`${localStorageKey}_user_id`, userId);
+          }
         }
       }
+    } catch (error) {
+      console.error('解析用户信息失败:', error);
     }
 
     form.setFieldsValue({
