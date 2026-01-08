@@ -90,8 +90,10 @@ const server = http.createServer((req, res) => {
         res.end(`Server Error: ${error.code}`);
       }
     } else {
+      // 对于文本文件使用 utf-8 编码，对于二进制文件不指定编码
+      const isTextFile = ['.html', '.css', '.js', '.json', '.svg'].includes(extname);
       res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
+      res.end(content, isTextFile ? 'utf-8' : undefined);
     }
   });
 });
