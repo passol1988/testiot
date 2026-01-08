@@ -4,7 +4,7 @@ requires = ["nodejs-24"]
 
 [dev]
 build = ["pnpm", "install"]
-run = ["pnpm", "dev"]
+run = ["bash", "-c", "DISABLE_FAST_REFRESH=1 pnpm dev"]
 
 [deploy]
 build = ["pnpm", "install"]
