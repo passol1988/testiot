@@ -50,6 +50,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 忽略 Vite 开发服务器的内部路径
+  if (req.url?.startsWith('/@')) {
+    res.writeHead(404, { 'Content-Type': 'text/html' });
+    res.end(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>404 - 页面不存在</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1>404 - 页面不存在</h1>
+        <p>您访问的是开发环境的内部路径，该路径在生产环境中不存在。</p>
+        <p><a href="/">点击这里返回首页</a></p>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
   let filePath = path.join(distDir, req.url === '/' ? 'index.html' : req.url);
 
   const extname = path.extname(filePath);
