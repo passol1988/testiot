@@ -31,10 +31,12 @@ function downloadPlugin() {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.VITE_PUBLIC_URL,
+  // 只在部署环境设置 base，开发环境使用默认的 '/'
+  base: process.env.NODE_ENV === 'production' ? process.env.VITE_PUBLIC_URL : '/',
   plugins: [react(), downloadPlugin()],
   server: {
     host: '0.0.0.0',
     port: 5000,
+    // HMR 自动检测，无需手动配置
   },
 });
