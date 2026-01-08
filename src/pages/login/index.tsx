@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Form, Input, Button, Card, Tabs, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -108,9 +108,9 @@ const Login = () => {
   };
 
   // 检查登录状态
-  useEffect(() => {
+  useState(() => {
     checkLoginStatus();
-  }, []);
+  });
 
   return (
     <div className="login-container">

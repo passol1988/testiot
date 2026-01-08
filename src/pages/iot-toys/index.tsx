@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 
-import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload, Space, Checkbox, Radio, Card } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload, Space } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
@@ -10,7 +10,6 @@ import {
   RobotOutlined,
   UploadOutlined,
   DownloadOutlined,
-  ExperimentOutlined,
 } from '@ant-design/icons';
 import {
   WsChatClient,
@@ -90,40 +89,6 @@ const IoTToys = () => {
   const [loadingBotInfo, setLoadingBotInfo] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
-
-  // 大模型配置状态
-  const [isLLMConfigModalOpen, setIsLLMConfigModalOpen] = useState(false);
-  const [llmForm] = Form.useForm();
-  const replyStyles = [
-    { label: '简洁明了', value: 'concise' },
-    { label: '适中详细', value: 'moderate' },
-    { label: '丰富详尽', value: 'detailed' },
-  ];
-  const valuesList = [
-    { label: '正直', value: 'integrity' },
-    { label: '善良', value: 'kindness' },
-    { label: '勇敢', value: 'bravery' },
-    { label: '真诚', value: 'sincerity' },
-  ];
-  const habitsList = [
-    { label: '好好吃饭', value: 'eat_well' },
-    { label: '少玩手机', value: 'less_phone' },
-    { label: '勤于思考', value: 'think_more' },
-    { label: '不挑食', value: 'not_picky' },
-    { label: '讲文明', value: 'civilized' },
-    { label: '乐于助人', value: 'helpful' },
-    { label: '好好睡觉', value: 'sleep_well' },
-    { label: '懂礼貌', value: 'polite' },
-    { label: '爱阅读', value: 'reading' },
-    { label: '讲卫生', value: 'hygienic' },
-    { label: '乐于学习', value: 'eager_to_learn' },
-  ];
-  const skillsList = [
-    { label: '英语口语', value: 'english_speaking' },
-    { label: '古诗词', value: 'poetry' },
-    { label: '沟通表达', value: 'communication' },
-    { label: '科学知识', value: 'science' },
-  ];
 
   // 处理 Settings 变化
   const handleSettingsChange = () => {
@@ -269,29 +234,6 @@ const IoTToys = () => {
   const handleOpenBotConfig = () => {
     setIsBotConfigModalOpen(true);
     fetchBotInfo();
-  };
-
-  // 打开大模型配置模态框
-  const handleOpenLLMConfig = () => {
-    // 从 localStorage 读取保存的配置
-    const savedConfig = localStorage.getItem('llmConfig');
-    if (savedConfig) {
-      try {
-        const configData = JSON.parse(savedConfig);
-        llmForm.setFieldsValue(configData);
-      } catch (error) {
-        console.error('解析大模型配置失败:', error);
-      }
-    }
-    setIsLLMConfigModalOpen(true);
-  };
-
-  // 保存大模型配置
-  const handleSaveLLMConfig = (values: any) => {
-    console.log('保存大模型配置:', values);
-    localStorage.setItem('llmConfig', JSON.stringify(values));
-    message.success('大模型配置已保存');
-    setIsLLMConfigModalOpen(false);
   };
 
   // 下载项目文件
@@ -668,6 +610,16 @@ const IoTToys = () => {
     <div className="hero-section">
       <h1>AI玩具演示平台</h1>
       <p>体验智能对话，开启 AI 玩具新时代</p>
+      <div className="button-group">
+        <Button
+          type="primary"
+          icon={<SettingOutlined />}
+          onClick={() => setIsConfigModalOpen(true)}
+          style={{ marginBottom: 20 }}
+        >
+          配置
+        </Button>
+      </div>
       <button className="call-button" onClick={handleStartCall}>
         <span className="phone-icon"><PhoneOutlined /></span>
         <span className="button-text">开始对话</span>
@@ -816,7 +768,7 @@ const IoTToys = () => {
   return (
     <Layout className="iot-toys-page">
       <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 10 }}>
-        <Space size={12} wrap>
+        <Space size={8}>
           <Settings
             onSettingsChange={handleSettingsChange}
             localStorageKey={localStorageKey}
@@ -831,13 +783,6 @@ const IoTToys = () => {
             onClick={handleOpenBotConfig}
           >
             智能体配置
-          </Button>
-          <Button
-            type="default"
-            icon={<ExperimentOutlined />}
-            onClick={handleOpenLLMConfig}
-          >
-            大模型配置
           </Button>
           <Button
             type="default"
@@ -935,70 +880,6 @@ const IoTToys = () => {
           <Form.Item name="prologue" label="开场白">
             <Input.TextArea placeholder="请输入开场白" rows={3} />
           </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* 大模型配置模态框 */}
-      <Modal
-        title="大模型配置"
-        open={isLLMConfigModalOpen}
-        onCancel={() => setIsLLMConfigModalOpen(false)}
-        onOk={() => llmForm.submit()}
-        width={700}
-        destroyOnClose
-      >
-        <Form
-          form={llmForm}
-          onFinish={handleSaveLLMConfig}
-          layout="vertical"
-        >
-          <Card title="回复风格" style={{ marginBottom: 16 }}>
-            <Form.Item name="replyStyle" label="请选择回复风格">
-              <Radio.Group>
-                {replyStyles.map(item => (
-                  <Radio key={item.value} value={item.value}>
-                    {item.label}
-                  </Radio>
-                ))}
-              </Radio.Group>
-            </Form.Item>
-          </Card>
-
-          <Card title="价值观" style={{ marginBottom: 16 }}>
-            <Form.Item name="values" label="请选择价值观（可多选）">
-              <Checkbox.Group>
-                {valuesList.map(item => (
-                  <Checkbox key={item.value} value={item.value}>
-                    {item.label}
-                  </Checkbox>
-                ))}
-              </Checkbox.Group>
-            </Form.Item>
-          </Card>
-
-          <Card title="习惯" style={{ marginBottom: 16 }}>
-            <Form.Item name="habits" label="请选择习惯（可多选）">
-              <Checkbox.Group>
-                {habitsList.map(item => (
-                  <Checkbox key={item.value} value={item.value}>
-                    {item.label}
-                  </Checkbox>
-                ))}
-              </Checkbox.Group>
-            </Form.Item>
-          </Card>
-
-          <Card title="技能" style={{ marginBottom: 16 }}>
-            <Form.Item name="skills" label="请选择技能（可多选）">
-              <Checkbox.Group>
-                {skillsList.map(item => (
-                  <Checkbox key={item.value} value={item.value}>
-                    {item.label}
-                  </Checkbox>
-                ))}
-              </Checkbox.Group>
-            </Form.Item>
-          </Card>
         </Form>
       </Modal>
     </Layout>
