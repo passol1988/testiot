@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Modal, Form, Button, Input, message, TreeSelect, type TreeSelectProps, Select, type OptionProps } from 'antd';
+import { useState } from 'react';
+import { Modal, Form, Button, Input, message, TreeSelect, type TreeSelectProps, Select } from 'antd';
+import type { DefaultOptionType } from 'antd/es/select';
 import { SettingOutlined } from '@ant-design/icons';
 import getConfig from '../../../utils/config';
 import useApi from './use-api';
@@ -25,7 +26,7 @@ const SettingsComponent = ({
   const { getBotInfo, getBots, getWorkspaces, getVoices } = useApi(localStorageKey);
 
   const [treeData, setTreeData] = useState<Omit<DefaultOptionType, 'label'>[]>([]);
-  const [voiceData, setVoiceData] = useState<OptionProps[]>([]);
+  const [voiceData, setVoiceData] = useState<{ value: string; label: string; }[]>([]);
   const [isVoicesLoading, setIsVoicesLoading] = useState(false);
   const [isWorkspacesLoading, setIsWorkspacesLoading] = useState(false);
 
@@ -64,7 +65,7 @@ const SettingsComponent = ({
     setIsWorkspacesLoading(true);
     try {
       const workspaces = await getWorkspaces();
-      const treeData2: Omit<OptionProps, 'label'>[] = workspaces.map(workspace => ({
+      const treeData2: Omit<DefaultOptionType, 'label'>[] = workspaces.map(workspace => ({
         id: workspace.id,
         pId: 0,
         value: workspace.id,

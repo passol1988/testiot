@@ -1,11 +1,10 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload, Space, Popover } from 'antd';
+import { Button, message, Layout, Select, Modal, Slider, Tooltip, Form, Input, Upload, Space } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
   SoundOutlined,
   SoundFilled,
-  SettingOutlined,
   RobotOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
