@@ -73,6 +73,8 @@ export default defineConfig({
       babel: {
         plugins: [],
       },
+      // 禁用 HMR 的 preamble，避免在预览环境中出现问题
+      include: '**/*.{jsx,tsx}',
     }),
     downloadPlugin()
   ],
@@ -97,5 +99,9 @@ export default defineConfig({
     alias: {
       '@': '/src',
     },
+  },
+  // 确保在预览环境中也能正常工作
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
 });

@@ -4,7 +4,7 @@ requires = ["nodejs-24"]
 
 [dev]
 build = ["pnpm", "install"]
-run = ["pnpm", "dev"]
+run = ["bash", "-c", "node preview-server.js"]
 
 [deploy]
 build = ["pnpm", "install"]
