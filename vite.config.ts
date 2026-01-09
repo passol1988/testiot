@@ -27,14 +27,34 @@ function downloadPlugin() {
         }
       });
 
-      // 在 Vite 处理之前设置 /@react-refresh 的响应头
+      // 强制为 /@react-refresh 路径设置正确的响应头
+      server.middlewares.use((req: any, res: any, next: any) => {
+        const originalWriteHead = res.writeHead;
+        res.writeHead = function(...args: any[]) {
+          if (req.url === '/@react-refresh' || req.url?.startsWith('/@react-refresh/')) {
+            // 强制设置 Content-Type 为 application/javascript
+            args[1] = args[1] || {};
+            args[1]['Content-Type'] = 'application/javascript; charset=utf-8';
+            args[1]['Access-Control-Allow-Origin'] = '*';
+            args[1]['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
+            args[1]['Access-Control-Allow-Headers'] = 'Content-Type';
+            args[1]['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+          }
+          return originalWriteHead.apply(this, args);
+        };
+        next();
+      });
+
+      // 在 Vite 处理之后，确保 /@react-refresh 的响应头正确
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url === '/@react-refresh' || req.url?.startsWith('/@react-refresh/')) {
-          // 强制设置响应头，即使后续中间件可能修改它
-          const originalWriteHead = res.writeHead;
-          res.writeHead = function(...args: any[]) {
-            res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-            return originalWriteHead.apply(this, args);
+          // 在所有中间件完成后，强制设置响应头
+          const originalEnd = res.end;
+          res.end = function(...args: any[]) {
+            if (!res.getHeader('Content-Type') || res.getHeader('Content-Type') === 'text/html') {
+              res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+            }
+            return originalEnd.apply(this, args);
           };
         }
         next();
@@ -59,10 +79,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5000,
-    // 完全禁用 HMR，避免在预览环境中出现问题
-    hmr: false,
-    // 禁用文件监听，避免热更新相关的问题
-    watch: null,
+    // 配置 HMR 以支持代理环境
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5000,
+      clientPort: 5000,
+    },
   },
   // 优化预构建
   optimizeDeps: {
