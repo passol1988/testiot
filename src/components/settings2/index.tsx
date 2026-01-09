@@ -23,15 +23,11 @@ const Settings2 = ({
   onSettingsChange,
   localStorageKey,
   className,
-  buttonText = 'Settings',
-  modalTitle = 'Settings',
 }: {
   onSettingsChange: () => void;
   localStorageKey: string;
   fields: string[];
   className?: string;
-  buttonText?: string;
-  modalTitle?: string;
 }) => {
   const config = getConfig(localStorageKey);
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
@@ -44,8 +40,9 @@ const Settings2 = ({
   );
   const [voiceData, setVoiceData] = useState<OptionProps[]>([]);
   const [pat, setPat] = useState(config.getPat());
-  const [showSelect, setShowSelect] = useState(() => !!config.getPat());
-  const [showVoiceSelect, setShowVoiceSelect] = useState(() => !!config.getPat());
+  const [showSelect, setShowSelect] = useState(
+    () => !config.getPat().startsWith('pat_'),
+  );
 
   const onLoadData: TreeSelectProps['loadData'] = async ({ id }) => {
     const options = await getBots(id);
@@ -70,7 +67,6 @@ const Settings2 = ({
     const baseWsUrl = config.getBaseWsUrl();
     const voiceId = config.getVoiceId();
     const workflowId = config.getWorkflowId();
-    const userId = config.getUserId();
     form.setFieldsValue({
       base_url: baseUrl,
       base_ws_url: baseWsUrl,
@@ -78,7 +74,6 @@ const Settings2 = ({
       bot_id: botId,
       voice_id: voiceId,
       workflow_id: workflowId,
-      user_id: userId,
     });
 
     if (botId && showSelect) {
@@ -96,10 +91,6 @@ const Settings2 = ({
       setShowSelect(true);
     } else {
       setShowSelect(false);
-    }
-    // 音色列表始终允许选择
-    if (pat) {
-      setShowVoiceSelect(true);
     }
   }, [isRelease, pat]);
 
@@ -136,15 +127,13 @@ const Settings2 = ({
     if (!pat) {
       return;
     }
-    // 音色列表总是加载
-    fetchAllVoices();
-    // 工作空间列表只在 showSelect 为 true 时加载
     if (showSelect) {
       fetchAllWorkspaces();
+      fetchAllVoices();
     } else {
       form.setFieldValue('bot_id', config.getBotId());
     }
-  }, [showSelect, pat]);
+  }, [showSelect]);
 
   // handle settings save
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -196,10 +185,10 @@ const Settings2 = ({
         onClick={() => setIsSettingsVisible(true)}
         className={className}
       >
-        {buttonText}
+        Settings
       </Button>
       <Modal
-        title={modalTitle}
+        title="Settings"
         open={isSettingsVisible}
         onCancel={() => setIsSettingsVisible(false)}
         onOk={() => form.submit()}
@@ -276,7 +265,7 @@ const Settings2 = ({
             )}
           </Form.Item>
           <Form.Item key={'voiceID'} name={'voice_id'} label="音色ID">
-            {showVoiceSelect ? (
+            {showSelect ? (
               <Select
                 placeholder="Please select"
                 showSearch
@@ -290,9 +279,6 @@ const Settings2 = ({
             ) : (
               <Input />
             )}
-          </Form.Item>
-          <Form.Item key={'userID'} name={'user_id'} label="用户ID">
-            <Input placeholder="请输入用户ID（可选）" />
           </Form.Item>
           <Form.Item key={'workflowID'} name={'workflow_id'} label="工作流ID">
             <Input />

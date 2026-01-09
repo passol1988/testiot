@@ -93,7 +93,7 @@ function Chat() {
   // 按键说话状态
   const [isPressRecording, setIsPressRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordTimer = useRef<NodeJS.Timeout | null>(null);
   const maxRecordingTime = 60; // 最大录音时长（秒）
   const [isCancelRecording, setIsCancelRecording] = useState(false);
   const startTouchY = useRef<number>(0);
@@ -423,7 +423,7 @@ function Chat() {
       <Settings
         onSettingsChange={handleSettingsChange}
         localStorageKey={localStorageKey}
-        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
+        fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id']}
         className="settings-button"
       />
       <Layout.Content style={{ padding: '16px', background: '#fff' }}>
