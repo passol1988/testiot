@@ -17,7 +17,7 @@ import getConfig from '../../utils/config';
 import ReceiveMessage from '../chat/receive-message';
 import SentenceMessage, { type SentenceMessageRef } from '../chat/sentence-message';
 import SendMessage from '../chat/send-message';
-import Settings from './settings';
+import Settings from '../../components/settings2';
 import EventInput from '../../components/event-input';
 import IoTHeader from './IoTHeader'; // 引入新的 Header
 
@@ -272,6 +272,9 @@ const IoTToys = () => {
           need_play_prologue: true,
         },
       };
+      if (chatUpdate.data.output_audio.voice_id === '') {
+        delete chatUpdate.data.output_audio.voice_id;
+      }
       await clientRef.current?.connect({ chatUpdate });
       setCallState('connected');
       setIsConnecting(false);
@@ -291,6 +294,10 @@ const IoTToys = () => {
     }
     setCallState('idle');
     message.success('通话已结束');
+  };
+
+  const handleSettingsChange = () => {
+    console.log('Settings changed');
   };
 
   const handleVolumeChange = (value: number) => {
@@ -482,10 +489,9 @@ const IoTToys = () => {
         extraContent={
           <Space>
             <Settings
+              onSettingsChange={handleSettingsChange}
               localStorageKey={localStorageKey}
-              fields={['base_ws_url', 'bot_id', 'pat', 'voice_id', 'workflow_id', 'user_id']}
-              buttonText="通用配置"
-              modalTitle="通用配置"
+              fields={[]}
             />
             <Button type="default" icon={<RobotOutlined />} onClick={handleOpenBotConfig}>
               智能体配置
