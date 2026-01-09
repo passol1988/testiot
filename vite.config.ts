@@ -53,25 +53,20 @@ export default defineConfig({
       babel: {
         plugins: [],
       },
-      // 全局禁用 fastRefresh，避免在预览环境中出现问题
-      fastRefresh: false,
     }),
     downloadPlugin()
   ],
   server: {
     host: '0.0.0.0',
     port: 5000,
-    // 简化 HMR 配置
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
-      port: 5000,
-      clientPort: 5000,
-    },
+    // 完全禁用 HMR，避免在预览环境中出现问题
+    hmr: false,
+    // 禁用文件监听，避免热更新相关的问题
+    watch: null,
   },
   // 优化预构建
   optimizeDeps: {
-    include: ['react', 'react-dom', 'antd', 'react-router-dom', '@ant-design/icons'],
+    include: ['react', 'react-dom', 'antd', '@ant-design/icons'],
     force: false,
   },
   // 确保正确的解析
