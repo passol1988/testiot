@@ -1,12 +1,11 @@
 /**
- * ChatMessageList - 对话消息列表组件（带打字机效果）
+ * ChatMessageList - 对话消息列表组件
  * 与 bot-manager 的消息事件兼容
  */
 
 import { useState, useEffect, useRef, type MutableRefObject } from 'react';
 import { type WsChatClient, WsChatEventNames, type WsChatEventData, ClientEventType, type AudioSentencePlaybackStartEvent } from '@coze/api/ws-tools';
 import { WebsocketsEventType, type ConversationAudioTranscriptCompletedEvent } from '@coze/api';
-import TypewriterText from './TypewriterText';
 
 interface Message {
   type: 'ai' | 'user';
@@ -19,10 +18,9 @@ interface Message {
 
 interface ChatMessageListProps {
   clientRef: MutableRefObject<WsChatClient | undefined>;
-  mode?: 'stream' | 'sentence';
 }
 
-const ChatMessageList = ({ clientRef, mode = 'stream' }: ChatMessageListProps) => {
+const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const isFirstDeltaRef = useRef(true);
@@ -178,23 +176,12 @@ const ChatMessageList = ({ clientRef, mode = 'stream' }: ChatMessageListProps) =
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  // 根据模式决定是否使用打字机效果
-  const shouldUseTypewriter = mode === 'stream';
-
   return (
     <div className="chat-messages">
       {messages.map((msg, index) => (
         <div key={index} className={`chat-message chat-message--${msg.type}`}>
           <div className={`message-bubble message-bubble--${msg.type}`}>
-            {msg.type === 'ai' && shouldUseTypewriter ? (
-              <TypewriterText
-                text={msg.content}
-                speed={30}
-                isComplete={msg.isComplete || false}
-              />
-            ) : (
-              msg.content
-            )}
+            {msg.content}
           </div>
           <div className="message-timestamp">{formatTime(msg.timestamp)}</div>
         </div>

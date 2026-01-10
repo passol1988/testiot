@@ -12,6 +12,7 @@ import {
   SoundOutlined,
   SoundFilled,
   RobotOutlined,
+  AudioOutlined,
 } from '@ant-design/icons';
 import { WsChatClient, WsChatEventNames, WsToolsUtils } from '@coze/api/ws-tools';
 import type { CommonErrorEvent, ConversationAudioTranscriptUpdateEvent } from '@coze/api';
@@ -22,12 +23,9 @@ import EventInput from '../../../components/event-input';
 import IoTHeader from '../../iot-toys/IoTHeader';
 import { getAuth } from '../utils/storage';
 import ChatMessageList from './components/ChatMessageList';
+import VoiceSelector from '../components/VoiceSelector';
 
 const { Content } = Layout;
-
-// 获取回复模式配置
-const getReplyMode = (): 'stream' | 'sentence' =>
-  localStorage.getItem('replyMode') === 'sentence' ? 'sentence' : 'stream';
 
 type CallState = 'idle' | 'calling' | 'connected';
 
@@ -54,8 +52,6 @@ const CallPage = ({ botList }: CallPageProps) => {
   // Refs
   const clientRef = useRef<WsChatClient>();
   const audioConfigRef = useRef<AudioConfigRef>(null);
-  const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startTouchY = useRef<number>(0);
 
   // 状态管理
   const [callState, setCallState] = useState<CallState>('idle');
@@ -86,15 +82,11 @@ const CallPage = ({ botList }: CallPageProps) => {
   const [transcript, setTranscript] = useState('');
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
 
-  // 对话模式
-  const [turnDetectionType] = useState('server_vad');
-  const [replyMode] = useState<'stream' | 'sentence'>(getReplyMode());
-
-  // 按键说话状态
-  const [isPressRecording, setIsPressRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isCancelRecording, setIsCancelRecording] = useState(false);
-  const maxRecordingTime = 60;
+  // TTS 设置状态
+  const [ttsVisible, setTtsVisible] = useState(false);
+  const [localVoiceId, setLocalVoiceId] = useState(extConfig.voiceId || '');
+  const [localVoicePitch, setLocalVoicePitch] = useState(extConfig.voicePitch || 1);
+  const [localVoiceSpeed, setLocalVoiceSpeed] = useState(extConfig.voiceSpeed || 1);
 
   // 检查登录状态
   useEffect(() => {
@@ -224,7 +216,7 @@ const CallPage = ({ botList }: CallPageProps) => {
             pcm_config: { sample_rate: 24000 },
             voice_id: extConfig.voiceId || undefined,
           },
-          turn_detection: { type: turnDetectionType },
+          turn_detection: { type: 'server_vad' },
           need_play_prologue: true,
         },
       };
@@ -270,86 +262,22 @@ const CallPage = ({ botList }: CallPageProps) => {
     if (clientRef.current) clientRef.current.setPlaybackVolume(value / 100);
   };
 
-  // 按键说话相关函数
-  const handleVoiceButtonMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    if (callState === 'connected' && clientRef.current && turnDetectionType === 'client_interrupt') {
-      startPressRecord(e);
-    }
-  };
+  /**
+   * 静音切换
+   */
+  const [isMicMuted, setIsMicMuted] = useState(false);
 
-  const handleVoiceButtonMouseUp = () => {
-    if (isPressRecording && !isCancelRecording) finishPressRecord();
-    else if (isPressRecording && isCancelRecording) cancelPressRecord();
-  };
-
-  const handleVoiceButtonMouseLeave = () => {
-    if (isPressRecording) cancelPressRecord();
-  };
-
-  const handleVoiceButtonMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (isPressRecording && startTouchY.current) {
-      const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-      if (clientY < startTouchY.current - 50) setIsCancelRecording(true);
-      else setIsCancelRecording(false);
-    }
-  };
-
-  const startPressRecord = async (e: React.MouseEvent | React.TouchEvent) => {
-    if (callState === 'connected' && clientRef.current) {
+  const handleMicToggle = async () => {
+    const newState = !isMicMuted;
+    setIsMicMuted(newState);
+    if (clientRef.current) {
       try {
-        setIsPressRecording(true);
-        setRecordingDuration(0);
-        setIsCancelRecording(false);
-        if ('clientY' in e) startTouchY.current = (e as React.MouseEvent).clientY;
-        else if ('touches' in e && e.touches.length > 0) startTouchY.current = e.touches[0].clientY;
-        else startTouchY.current = 0;
-        await clientRef.current.startRecord();
-        recordTimer.current = setInterval(() => {
-          setRecordingDuration(prev => {
-            const newDuration = prev + 1;
-            if (newDuration >= maxRecordingTime) finishPressRecord();
-            return newDuration;
-          });
-        }, 1000);
-      } catch (error: any) {
-        message.error(`开始录音错误: ${error.message || '未知错误'}`);
-        if (recordTimer.current) clearInterval(recordTimer.current);
-        recordTimer.current = null;
-        setIsPressRecording(false);
-        setRecordingDuration(0);
-      }
-    }
-  };
-
-  const finishPressRecord = () => {
-    if (isPressRecording && clientRef.current) {
-      try {
-        if (recordTimer.current) clearInterval(recordTimer.current);
-        recordTimer.current = null;
-        if (recordingDuration < 1) {
-          cancelPressRecord();
-          return;
-        }
-        clientRef.current.stopRecord();
-        setIsPressRecording(false);
-        message.success(`发送了 ${recordingDuration} 秒的语音消息`);
-      } catch (error: any) {
-        message.error(`结束录音错误: ${error.message || '未知错误'}`);
-      }
-    }
-  };
-
-  const cancelPressRecord = async () => {
-    if (isPressRecording && clientRef.current) {
-      try {
-        if (recordTimer.current) clearInterval(recordTimer.current);
-        recordTimer.current = null;
-        await clientRef.current?.stopRecord();
-        setIsPressRecording(false);
-        setIsCancelRecording(false);
-        message.info('取消了语音消息');
-      } catch (error: any) {
-        message.error(`取消录音错误: ${error.message || '未知错误'}`);
+        await clientRef.current.setAudioEnable(!newState);
+        message.success(newState ? '麦克风已静音' : '麦克风已开启');
+      } catch (error) {
+        message.error(`切换麦克风状态失败：${error}`);
+        // 恢复状态
+        setIsMicMuted(!newState);
       }
     }
   };
@@ -357,7 +285,6 @@ const CallPage = ({ botList }: CallPageProps) => {
   // 清理
   useEffect(() => {
     return () => {
-      if (recordTimer.current) clearInterval(recordTimer.current);
       if (clientRef.current) clientRef.current.disconnect();
     };
   }, []);
@@ -381,11 +308,39 @@ const CallPage = ({ botList }: CallPageProps) => {
               pcm_config: { sample_rate: 24000 },
               voice_id: extConfig.voiceId,
             },
-            turn_detection: { type: turnDetectionType },
+            turn_detection: { type: 'server_vad' },
             need_play_prologue: true,
           },
         }, null, 2)}
       />
+    </div>
+  );
+
+  // TTS 设置内容
+  const ttsSettingsContent = (
+    <div style={{ width: 320 }}>
+      <VoiceSelector
+        voiceId={localVoiceId}
+        pitch={localVoicePitch}
+        speed={localVoiceSpeed}
+        onVoiceChange={setLocalVoiceId}
+        onPitchChange={setLocalVoicePitch}
+        onSpeedChange={setLocalVoiceSpeed}
+        supportEmotion={false}
+      />
+      <Button
+        type="primary"
+        block
+        style={{ marginTop: 16 }}
+        onClick={() => {
+          const newExtConfig = { voiceId: localVoiceId, voicePitch: localVoicePitch, voiceSpeed: localVoiceSpeed };
+          localStorage.setItem(`bot-manager_ext_${botId}`, JSON.stringify(newExtConfig));
+          message.success('TTS设置已保存，重新连接后生效');
+          setTtsVisible(false);
+        }}
+      >
+        保存设置
+      </Button>
     </div>
   );
 
@@ -470,29 +425,11 @@ const CallPage = ({ botList }: CallPageProps) => {
 
         <div className="control-buttons">
           <button
-            className={`control-button microphone ${isPressRecording ? 'recording' : ''}`}
-            onMouseDown={handleVoiceButtonMouseDown}
-            onMouseUp={handleVoiceButtonMouseUp}
-            onMouseLeave={handleVoiceButtonMouseLeave}
-            onMouseMove={handleVoiceButtonMouseMove}
-            onTouchStart={handleVoiceButtonMouseDown}
-            onTouchEnd={handleVoiceButtonMouseUp}
-            onTouchCancel={handleVoiceButtonMouseLeave}
-            onTouchMove={handleVoiceButtonMouseMove}
+            className={`control-button microphone ${isMicMuted ? 'muted' : ''}`}
+            onClick={handleMicToggle}
           >
-            <span className="mic-icon">🎙️</span>
+            <span className="mic-icon">{isMicMuted ? '🔇' : '🎙️'}</span>
           </button>
-
-          {isPressRecording && (
-            <div className="recording-status">
-              <div className="recording-time">
-                {Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:{(recordingDuration % 60).toString().padStart(2, '0')}
-              </div>
-              <div className="recording-progress">
-                <div className="recording-progress-bar" style={{ width: `${(recordingDuration / maxRecordingTime) * 100}%` }}></div>
-              </div>
-            </div>
-          )}
 
           <button className="control-button hangup" onClick={handleEndCall}>
             <PhoneFilled style={{ fontSize: 24, color: 'white' }} />
@@ -505,7 +442,7 @@ const CallPage = ({ botList }: CallPageProps) => {
         <div className="chat-messages">
           <SendMessage isConnected={true} clientRef={clientRef} onSendText={onSendText} />
           <div className="transcript">语音识别：{transcript || '...'}</div>
-          <ChatMessageList clientRef={clientRef} mode={replyMode} />
+          <ChatMessageList clientRef={clientRef} />
         </div>
 
         {/* 音量控制 */}
@@ -524,6 +461,17 @@ const CallPage = ({ botList }: CallPageProps) => {
       <IoTHeader
         title={botInfo.name}
         advancedSettingsContent={advancedSettingsContent}
+        ttsButton={
+          <Button
+            icon={<AudioOutlined />}
+            onClick={() => setTtsVisible(true)}
+          >
+            TTS设置
+          </Button>
+        }
+        ttsSettingsContent={ttsSettingsContent}
+        ttsVisible={ttsVisible}
+        onTtsVisibleChange={setTtsVisible}
         extraContent={
           <Button type="default" icon={<RobotOutlined />} onClick={() => navigate('/bot-manager')}>
             返回列表

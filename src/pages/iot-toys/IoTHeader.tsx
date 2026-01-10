@@ -8,10 +8,22 @@ const { Header } = Layout;
 interface IoTHeaderProps {
   title: string;
   advancedSettingsContent: React.ReactNode;
+  ttsButton?: React.ReactNode;
+  ttsSettingsContent?: React.ReactNode;
+  ttsVisible?: boolean;
+  onTtsVisibleChange?: (visible: boolean) => void;
   extraContent?: React.ReactNode;
 }
 
-const IoTHeader: React.FC<IoTHeaderProps> = ({ title, advancedSettingsContent, extraContent }) => {
+const IoTHeader: React.FC<IoTHeaderProps> = ({
+  title,
+  advancedSettingsContent,
+  ttsButton,
+  ttsSettingsContent,
+  ttsVisible,
+  onTtsVisibleChange,
+  extraContent
+}) => {
   return (
     <Header
       style={{
@@ -39,6 +51,18 @@ const IoTHeader: React.FC<IoTHeaderProps> = ({ title, advancedSettingsContent, e
       <div className="header-right">
         <Space>
           {extraContent}
+          {ttsButton && ttsSettingsContent && (
+            <Popover
+              placement="bottomRight"
+              title="TTS音色设置"
+              content={ttsSettingsContent}
+              trigger="click"
+              open={ttsVisible}
+              onOpenChange={onTtsVisibleChange}
+            >
+              {ttsButton}
+            </Popover>
+          )}
           <Popover
             placement="bottomRight"
             title="高级配置"

@@ -234,8 +234,9 @@
   box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
 }
 
-.control-button.microphone.recording {
-  animation: recordingPulse 1s ease-in-out infinite;
+.control-button.microphone.muted {
+  background: linear-gradient(135deg, #999 0%, #777 100%);
+  opacity: 0.6;
 }
 
 .control-button.hangup {
@@ -246,33 +247,6 @@
 
 .mic-icon {
   font-size: 28px;
-}
-
-/* 录音状态 */
-.recording-status {
-  width: 100%;
-  text-align: center;
-}
-
-.recording-time {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-  font-family: 'Monaco', 'Menlo', monospace;
-}
-
-.recording-progress {
-  width: 100%;
-  height: 4px;
-  background: #f0f0f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.recording-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #FF6B6B 0%, #FF8E8E 100%);
-  transition: width 0.3s;
 }
 
 /* 右侧对话区域 */
@@ -488,16 +462,6 @@
 @keyframes typingBlink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
-}
-
-/* 录音脉冲 */
-@keyframes recordingPulse {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-  }
 }
 
 /* ==================== 响应式设计 ==================== */

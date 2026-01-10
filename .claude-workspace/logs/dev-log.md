@@ -268,3 +268,54 @@ baseWsURL: 'wss://ws.coze.cn'  // 会变成 /v1/chat ✅
 
 ## 备注
 本项目使用了 Claude Code 进行全自动化开发，严格按照 `.claude-workspace/plans/plan-final.md` 规划文档执行开发。所有代码符合项目规范，构建成功无错误。
+
+---
+
+## 通话页面 UI 重构 (2024-XX-XX)
+
+### 变更内容
+实现了完整的通话页面 UI 重新设计，包含三种状态和动画过渡效果：
+
+1. **空闲状态 (idle)**: 居中布局
+   - 浮动动画头像（3秒上下浮动循环）
+   - 智能体名称 + 描述
+   - 绿色渐变通话按钮（脉冲动画）
+
+2. **呼叫中状态 (calling)**: 居中布局
+   - 三层音浪扩散动画
+   - "正在连接..." 闪烁文字
+
+3. **通话中状态 (connected)**: 分屏布局
+   - 左侧面板 (30%): 头像、通话计时、音浪动画、麦克风控制、挂断按钮
+   - 右侧面板 (70%): 聊天消息区域、音量控制
+
+### 新增组件
+- `TypewriterText`: 打字机效果组件，逐字符显示 AI 回复
+- `ChatMessage`: 消息气泡组件
+- `ChatMessageList`: 消息列表组件，集成 WebSocket 事件处理
+
+### CSS 动画
+- `float`: 头像浮动效果
+- `breathe`: 头像呼吸灯效果
+- `buttonPulse`: 按钮脉冲效果
+- `ripple`: 音浪扩散效果
+- `wave`: 音浪波动效果
+- `fadeIn`: 淡入效果
+- `slideUp`: 滑入效果
+- `messageSlideIn`: 消息滑入效果
+- `blink`: 光标闪烁效果
+
+### 颜色方案
+- 主色调: 暖粉红/红色渐变 (#FF6B6B → #FF8E8E)
+- 背景渐变: #FFF5F5 → #FFFFFF
+- AI 消息气泡: #FFF5F5 背景
+- 用户消息气泡: 粉红渐变背景
+
+### 技术细节
+- 使用 React hooks (useState, useEffect, useCallback, useRef)
+- WebSocket 事件监听: CONVERSATION_MESSAGE_DELTA, CONVERSATION_MESSAGE_COMPLETED, CONVERSATION_AUDIO_TRANSCRIPT_COMPLETED
+- 支持流式模式和音字同步模式
+- 响应式设计支持移动端
+
+### 提交记录
+- `d945dd0`: feat(call): implement new UI design with state transitions and typewriter effect
