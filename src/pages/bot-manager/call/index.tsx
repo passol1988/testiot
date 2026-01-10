@@ -1,11 +1,11 @@
 /**
- * Call Page - 通话页面
- * 语音通话界面
+ * Call Page - 通话页面（重新设计版）
+ * 分屏布局 + 状态切换动画
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layout, Button, Select, Slider, message, Tooltip } from 'antd';
+import { Layout, Button, Slider, message, Tooltip } from 'antd';
 import {
   PhoneOutlined,
   PhoneFilled,
@@ -17,35 +17,19 @@ import { WsChatClient, WsChatEventNames, WsToolsUtils } from '@coze/api/ws-tools
 import type { CommonErrorEvent, ConversationAudioTranscriptUpdateEvent } from '@coze/api';
 
 import { AudioConfig, type AudioConfigRef } from '../../../components/audio-config';
-import ReceiveMessage from '../../chat/receive-message';
-import SentenceMessage, { type SentenceMessageRef } from '../../chat/sentence-message';
 import SendMessage from '../../chat/send-message';
 import EventInput from '../../../components/event-input';
 import IoTHeader from '../../iot-toys/IoTHeader';
-import './call.css';
 import { getAuth } from '../utils/storage';
+import ChatMessageList from './components/ChatMessageList';
 
 const { Content } = Layout;
-
-type CallState = 'idle' | 'calling' | 'connected';
 
 // 获取回复模式配置
 const getReplyMode = (): 'stream' | 'sentence' =>
   localStorage.getItem('replyMode') === 'sentence' ? 'sentence' : 'stream';
 
-// Helper function to get chatUpdate config based on turn detection mode
-const getChatUpdateConfig = (_botId: string, voiceId: string, turnDetectionType: string, _extConfig: any) => ({
-  data: {
-    input_audio: { format: 'pcm', codec: 'pcm', sample_rate: 48000 },
-    output_audio: {
-      codec: 'pcm',
-      pcm_config: { sample_rate: 24000 },
-      voice_id: voiceId || undefined,
-    },
-    turn_detection: { type: turnDetectionType },
-    need_play_prologue: true,
-  },
-});
+type CallState = 'idle' | 'calling' | 'connected';
 
 interface CallPageProps {
   botList: Array<{
@@ -70,7 +54,6 @@ const CallPage = ({ botList }: CallPageProps) => {
   // Refs
   const clientRef = useRef<WsChatClient>();
   const audioConfigRef = useRef<AudioConfigRef>(null);
-  const sentenceMessageRef = useRef<SentenceMessageRef>(null);
   const recordTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTouchY = useRef<number>(0);
 
@@ -83,7 +66,7 @@ const CallPage = ({ botList }: CallPageProps) => {
   const botInfo = botList.find(bot => bot.bot_id === botId) || {
     bot_id: botId || '',
     name: '智能助手',
-    description: '',
+    description: '点击开始通话',
     icon_url: 'https://files.coze.cn/files/default-avatar.png',
     is_published: false,
     create_time: 0,
@@ -101,10 +84,9 @@ const CallPage = ({ botList }: CallPageProps) => {
   // 音频配置状态
   const [volume, setVolume] = useState(100);
   const [transcript, setTranscript] = useState('');
-  const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedInputDevice, setSelectedInputDevice] = useState<string>('');
 
-  // 对话模式和回复模式
+  // 对话模式
   const [turnDetectionType] = useState('server_vad');
   const [replyMode] = useState<'stream' | 'sentence'>(getReplyMode());
 
@@ -125,7 +107,6 @@ const CallPage = ({ botList }: CallPageProps) => {
   useEffect(() => {
     const getDevices = async () => {
       const devices = await WsToolsUtils.getAudioDevices();
-      setInputDevices(devices.audioInputs);
       if (devices.audioInputs.length > 0) {
         setSelectedInputDevice(devices.audioInputs[0].deviceId);
       }
@@ -152,7 +133,7 @@ const CallPage = ({ botList }: CallPageProps) => {
         clearInterval(durationTimer);
       }
     };
-  }, [callState]);
+  }, [callState, durationTimer]);
 
   /**
    * 格式化通话时长
@@ -234,14 +215,29 @@ const CallPage = ({ botList }: CallPageProps) => {
       setCallState('calling');
       if (!clientRef.current) await initClient();
 
-      const chatUpdate: any = getChatUpdateConfig(botId || '', extConfig.voiceId, turnDetectionType, extConfig);
+      const chatUpdate: any = {
+        event_type: 'chat.update',
+        data: {
+          input_audio: { format: 'pcm', codec: 'pcm', sample_rate: 48000 },
+          output_audio: {
+            codec: 'pcm',
+            pcm_config: { sample_rate: 24000 },
+            voice_id: extConfig.voiceId || undefined,
+          },
+          turn_detection: { type: turnDetectionType },
+          need_play_prologue: true,
+        },
+      };
       if (chatUpdate.data.output_audio.voice_id === '') {
         delete chatUpdate.data.output_audio.voice_id;
       }
 
       await clientRef.current?.connect({ chatUpdate });
-      setCallState('connected');
-      message.success('通话已连接');
+
+      // 连接成功后切换到分屏布局
+      setTimeout(() => {
+        setCallState('connected');
+      }, 500);
     } catch (error) {
       console.error(error);
       message.error(`连接错误：${(error as Error).message}`);
@@ -274,9 +270,7 @@ const CallPage = ({ botList }: CallPageProps) => {
     if (clientRef.current) clientRef.current.setPlaybackVolume(value / 100);
   };
 
-  /**
-   * 按键说话
-   */
+  // 按键说话相关函数
   const handleVoiceButtonMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (callState === 'connected' && clientRef.current && turnDetectionType === 'client_interrupt') {
       startPressRecord(e);
@@ -368,8 +362,9 @@ const CallPage = ({ botList }: CallPageProps) => {
     };
   }, []);
 
-  const onSendText = useCallback((text: string) => {
-    sentenceMessageRef.current?.addMessage(text);
+  // 文本消息发送回调（SendMessage 组件需要但当前不使用）
+  const onSendText = useCallback((_text: string) => {
+    // 用户发送的文本消息，ChatMessageList 会自动监听并显示
   }, []);
 
   // 高级配置内容
@@ -377,92 +372,105 @@ const CallPage = ({ botList }: CallPageProps) => {
     <div style={{ width: 300 }}>
       <AudioConfig clientRef={clientRef} ref={audioConfigRef} />
       <EventInput
-        defaultValue={JSON.stringify(getChatUpdateConfig(botId || '', extConfig.voiceId, turnDetectionType, extConfig), null, 2)}
+        defaultValue={JSON.stringify({
+          event_type: 'chat.update',
+          data: {
+            input_audio: { format: 'pcm', codec: 'pcm', sample_rate: 48000 },
+            output_audio: {
+              codec: 'pcm',
+              pcm_config: { sample_rate: 24000 },
+              voice_id: extConfig.voiceId,
+            },
+            turn_detection: { type: turnDetectionType },
+            need_play_prologue: true,
+          },
+        }, null, 2)}
       />
     </div>
   );
 
   /**
-   * 渲染空闲状态
+   * 渲染空闲状态（居中布局）
    */
   const renderIdleState = () => (
-    <div className="call-content">
-      <div className="call-avatar-container">
-        <img
-          src={botInfo.icon_url}
-          alt={botInfo.name}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://files.coze.cn/files/default-avatar.png';
-          }}
-        />
+    <div className="call-state call-state--idle">
+      <div className="idle-state">
+        <div className="avatar-container avatar-float">
+          <img
+            src={botInfo.icon_url}
+            alt={botInfo.name}
+            className="avatar avatar-large"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://files.coze.cn/files/default-avatar.png';
+            }}
+          />
+        </div>
+
+        <h1 className="bot-name">{botInfo.name}</h1>
+        <p className="bot-description">{botInfo.description}</p>
+
+        <button className="start-call-button" onClick={handleStartCall}>
+          <PhoneOutlined style={{ fontSize: 28, marginRight: 8 }} />
+          开始通话
+        </button>
       </div>
-
-      <div className="call-bot-name">{botInfo.name}</div>
-      <div className="call-bot-description">{botInfo.description || '点击下方按钮开始通话'}</div>
-
-      <button
-        className="call-action-button call-start-button"
-        onClick={handleStartCall}
-      >
-        <PhoneOutlined style={{ fontSize: 28, color: 'white' }} />
-      </button>
-      <div style={{ marginTop: 16, fontSize: 14, opacity: 0.8 }}>点击开始通话</div>
     </div>
   );
 
   /**
-   * 渲染呼叫中状态
+   * 渲染呼叫中状态（居中布局 + 音浪）
    */
   const renderCallingState = () => (
-    <div className="call-content" style={{ animation: 'fadeIn 0.3s ease-in' }}>
-      <div className="call-avatar-container">
-        <img
-          src={botInfo.icon_url}
-          alt={botInfo.name}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://files.coze.cn/files/default-avatar.png';
-          }}
-        />
-      </div>
+    <div className="call-state call-state--calling">
+      <div className="calling-state">
+        <div className="avatar-container">
+          <img
+            src={botInfo.icon_url}
+            alt={botInfo.name}
+            className="avatar avatar-large"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://files.coze.cn/files/default-avatar.png';
+            }}
+          />
+          <div className="audio-ripple"></div>
+          <div className="audio-ripple"></div>
+          <div className="audio-ripple"></div>
+        </div>
 
-      <div className="call-bot-name">正在连接...</div>
-      <div className="call-bot-description">请稍候</div>
-
-      <div className="audio-wave-container">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="audio-wave-bar" />
-        ))}
+        <p className="connecting-text">正在连接...</p>
       </div>
     </div>
   );
 
   /**
-   * 渲染通话中状态
+   * 渲染通话中状态（分屏布局）
    */
   const renderConnectedState = () => (
-    <div className="call-content" style={{ animation: 'fadeIn 0.3s ease-in' }}>
-      <div className="call-avatar-container">
+    <div className="call-state call-state--connected">
+      {/* 左侧面板 */}
+      <div className="left-panel">
         <img
           src={botInfo.icon_url}
           alt={botInfo.name}
+          className="avatar avatar-medium"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://files.coze.cn/files/default-avatar.png';
           }}
         />
-      </div>
 
-      <div className="call-bot-name">{botInfo.name}</div>
-      <div className="call-bot-description" style={{ fontSize: 18 }}>
-        {formatDuration(callDuration)}
-      </div>
+        <div className="call-info">
+          <div className="call-timer">{formatDuration(callDuration)}</div>
+        </div>
 
-      <SendMessage isConnected={callState === 'connected'} clientRef={clientRef} onSendText={onSendText} />
-      <div style={{ margin: '16px 0' }}>语音识别结果：{transcript}</div>
+        <div className="audio-waves">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="audio-wave-bar" />
+          ))}
+        </div>
 
-      {turnDetectionType === 'client_interrupt' && callState === 'connected' && (
-        <div style={{ maxWidth: '400px', margin: '0 auto 16px' }}>
-          <div
-            className={`voice-button ${isPressRecording ? 'recording' : ''}`}
+        <div className="control-buttons">
+          <button
+            className={`control-button microphone ${isPressRecording ? 'recording' : ''}`}
             onMouseDown={handleVoiceButtonMouseDown}
             onMouseUp={handleVoiceButtonMouseUp}
             onMouseLeave={handleVoiceButtonMouseLeave}
@@ -472,47 +480,47 @@ const CallPage = ({ botList }: CallPageProps) => {
             onTouchCancel={handleVoiceButtonMouseLeave}
             onTouchMove={handleVoiceButtonMouseMove}
           >
-            {isPressRecording ? '松开 发送' : '按住 说话'}
-          </div>
+            <span className="mic-icon">🎙️</span>
+          </button>
+
           {isPressRecording && (
             <div className="recording-status">
-              <div className="recording-time">{Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:{(recordingDuration % 60).toString().padStart(2, '0')}</div>
-              <div className="recording-progress-container">
-                <div className="recording-progress" style={{ width: `${(recordingDuration / maxRecordingTime) * 100}%` }}></div>
+              <div className="recording-time">
+                {Math.floor(recordingDuration / 60).toString().padStart(2, '0')}:{(recordingDuration % 60).toString().padStart(2, '0')}
               </div>
-              <div className={`recording-tip ${isCancelRecording ? 'cancel-tip' : ''}`}>{isCancelRecording ? '松开手指，取消发送' : '上滑取消发送'}</div>
+              <div className="recording-progress">
+                <div className="recording-progress-bar" style={{ width: `${(recordingDuration / maxRecordingTime) * 100}%` }}></div>
+              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {replyMode === 'stream' ? <ReceiveMessage clientRef={clientRef} /> : <SentenceMessage ref={sentenceMessageRef} clientRef={clientRef} />}
-
-      <div className="control-panel">
-        <div className="volume-control">
-          <Tooltip title={`音量: ${volume}%`}>
-            <div className="volume-icon">{volume > 0 ? <SoundFilled /> : <SoundOutlined />}</div>
-          </Tooltip>
-          <Slider min={0} max={100} value={volume} onChange={handleVolumeChange} className="volume-slider" />
-          <span className="volume-value">{volume}%</span>
+          <button className="control-button hangup" onClick={handleEndCall}>
+            <PhoneFilled style={{ fontSize: 24, color: 'white' }} />
+          </button>
         </div>
-        <Select placeholder="选择麦克风" value={selectedInputDevice} onChange={setSelectedInputDevice} className="device-select" suffixIcon={<SoundOutlined />}>
-          {inputDevices.map(device => (<Select.Option key={device.deviceId} value={device.deviceId}>{device.label}</Select.Option>))}
-        </Select>
       </div>
 
-      <button
-        className="call-action-button call-hangup-button"
-        onClick={handleEndCall}
-      >
-        <PhoneFilled style={{ fontSize: 28, color: 'white' }} />
-      </button>
-      <div style={{ marginTop: 16, fontSize: 14, opacity: 0.8 }}>点击结束通话</div>
+      {/* 右侧对话区域 */}
+      <div className="right-panel chat-area">
+        <div className="chat-messages">
+          <SendMessage isConnected={true} clientRef={clientRef} onSendText={onSendText} />
+          <div className="transcript">语音识别：{transcript || '...'}</div>
+          <ChatMessageList clientRef={clientRef} mode={replyMode} />
+        </div>
+
+        {/* 音量控制 */}
+        <div className="volume-control">
+          <Tooltip title={`音量: ${volume}%`}>
+            <span className="volume-icon">{volume > 0 ? <SoundFilled /> : <SoundOutlined />}</span>
+          </Tooltip>
+          <Slider min={0} max={100} value={volume} onChange={handleVolumeChange} className="volume-slider" />
+        </div>
+      </div>
     </div>
   );
 
   return (
-    <Layout className="iot-toys-page" style={{ height: '100%' }}>
+    <Layout className="call-page-container" style={{ height: '100%' }}>
       <IoTHeader
         title={botInfo.name}
         advancedSettingsContent={advancedSettingsContent}
@@ -522,7 +530,7 @@ const CallPage = ({ botList }: CallPageProps) => {
           </Button>
         }
       />
-      <Content className="iot-toys-container">
+      <Content className="call-page-content">
         {callState === 'idle' && renderIdleState()}
         {callState === 'calling' && renderCallingState()}
         {callState === 'connected' && renderConnectedState()}
