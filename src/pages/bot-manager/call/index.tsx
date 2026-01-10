@@ -180,7 +180,7 @@ const CallPage = ({ botList }: CallPageProps) => {
     const audioConfig = audioConfigRef.current?.getSettings();
     const client = new WsChatClient({
       token: auth.pat,
-      baseWsURL: 'wss://api.coze.cn/v1',
+      baseWsURL: 'wss://ws.coze.cn/v1',
       allowPersonalAccessTokenInBrowser: true,
       botId: botId,
       debug: audioConfig?.debug,
