@@ -1,0 +1,513 @@
+/**
+ * Call Page Styles - 重新设计版
+ * 分屏布局 + 状态切换动画
+ */
+
+/* ==================== 基础布局 ==================== */
+
+.call-page-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFFFFF 100%);
+}
+
+.call-page-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFFFFF 100%);
+}
+
+/* ==================== 状态容器 ==================== */
+
+.call-state {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ==================== 空闲状态（居中布局） ==================== */
+
+.call-state--idle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idle-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.idle-state .avatar-container {
+  margin-bottom: 32px;
+}
+
+.avatar-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #FF6B6B;
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.2);
+  object-fit: cover;
+}
+
+.idle-state .bot-name {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.idle-state .bot-description {
+  font-size: 16px;
+  color: #888;
+  margin: 0 0 40px 0;
+}
+
+.start-call-button {
+  padding: 16px 40px;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: buttonPulse 2s ease-in-out infinite;
+}
+
+.start-call-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
+}
+
+/* ==================== 呼叫中状态（居中 + 音浪） ==================== */
+
+.call-state--calling {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calling-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.calling-state .avatar-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 32px;
+}
+
+.audio-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 107, 107, 0.3) 0%, transparent 70%);
+  animation: ripple 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.audio-ripple:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.audio-ripple:nth-child(3) {
+  animation-delay: 1s;
+}
+
+.connecting-text {
+  font-size: 18px;
+  color: #666;
+  animation: textFade 2s ease-in-out infinite;
+}
+
+/* ==================== 通话中状态（分屏布局） ==================== */
+
+.call-state--connected {
+  display: flex;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 左侧面板 */
+.left-panel {
+  width: 30%;
+  min-width: 280px;
+  max-width: 400px;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid #f0f0f0;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.avatar-medium {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid #FF6B6B;
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.2);
+  object-fit: cover;
+  margin-bottom: 24px;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.call-info {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.call-timer {
+  font-size: 24px;
+  font-weight: 600;
+  text-align: center;
+  font-family: 'Monaco', 'Menlo', monospace;
+  color: #333;
+}
+
+/* 音浪效果 */
+.audio-waves {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+  margin-bottom: 32px;
+}
+
+.audio-wave-bar {
+  width: 3px;
+  background: linear-gradient(180deg, #FF6B6B 0%, #FF8E8E 100%);
+  border-radius: 2px;
+  animation: wave 1s ease-in-out infinite;
+}
+
+.audio-wave-bar:nth-child(1) { animation-delay: 0s; height: 10px; }
+.audio-wave-bar:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+.audio-wave-bar:nth-child(3) { animation-delay: 0.2s; height: 30px; }
+.audio-wave-bar:nth-child(4) { animation-delay: 0.3s; height: 20px; }
+.audio-wave-bar:nth-child(5) { animation-delay: 0.4s; height: 10px; }
+
+/* 控制按钮 */
+.control-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.control-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.control-button:hover {
+  transform: scale(1.1);
+}
+
+.control-button.microphone {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.control-button.microphone.muted {
+  background: linear-gradient(135deg, #999 0%, #777 100%);
+  opacity: 0.6;
+}
+
+.control-button.hangup {
+  background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+.mic-icon {
+  font-size: 28px;
+}
+
+/* 右侧对话区域 */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  animation: slideUp 0.4s ease-out;
+}
+
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  scroll-behavior: smooth;
+}
+
+.chat-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transcript {
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #FFF5F5;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+/* 音量控制 */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.volume-icon {
+  font-size: 20px;
+  color: #999;
+}
+
+.volume-slider {
+  flex: 1;
+}
+
+/* ==================== 消息样式 ==================== */
+
+.chat-message {
+  margin-bottom: 16px;
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+.chat-message--ai {
+  text-align: left;
+}
+
+.chat-message--user {
+  text-align: right;
+}
+
+.message-bubble {
+  display: inline-block;
+  padding: 12px 16px;
+  border-radius: 16px;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.message-bubble--ai {
+  background: #FFF5F5;
+  border: 1px solid #FFE8E8;
+  color: #333;
+}
+
+.message-bubble--user {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+  color: white;
+}
+
+.message-prefix {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.typing-indicator {
+  margin-left: 4px;
+  animation: typingBlink 1s infinite;
+}
+
+.message-timestamp {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* ==================== 打字机效果 ==================== */
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #FF6B6B;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+}
+
+/* ==================== 动画定义 ==================== */
+
+/* 头像浮动 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 头像呼吸灯 */
+@keyframes breathe {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(255, 107, 107, 0.4);
+  }
+}
+
+/* 按钮脉冲 */
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 24px rgba(76, 175, 80, 0.5);
+  }
+}
+
+/* 音浪扩散 */
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* 文字闪烁 */
+@keyframes textFade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 音浪波动 */
+@keyframes wave {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.5); }
+}
+
+/* 淡入 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 滑入 */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 消息滑入 */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 光标闪烁 */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* 打字闪烁 */
+@keyframes typingBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ==================== 响应式设计 ==================== */
+
+@media (max-width: 768px) {
+  /* 移动端保持居中布局，通话中也不分屏 */
+  .call-state--connected {
+    display: block;
+  }
+
+  .left-panel {
+    width: 100%;
+    max-width: none;
+    border-right: none;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 24px 20px;
+  }
+
+  .right-panel {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .avatar-large {
+    width: 100px;
+    height: 100px;
+  }
+
+  .avatar-medium {
+    width: 80px;
+    height: 80px;
+  }
+
+  .idle-state .bot-name {
+    font-size: 24px;
+  }
+
+  .start-call-button {
+    padding: 14px 32px;
+    font-size: 16px;
+  }
+}

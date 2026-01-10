@@ -27,6 +27,7 @@ import SimultInterpretation from './pages/simult-interpretation';
 import Chat from './pages/chat';
 import AudioTest from './pages/audio-test';
 import IoTToys from './pages/iot-toys';
+import BotManager from './pages/bot-manager';
 import logo from './logo.svg';
 import './App.css';
 const { Header, Content, Sider } = Layout;
@@ -44,6 +45,12 @@ const menuItems = [
     icon: <PlaySquareOutlined />,
     label: '物联网玩具',
     title: '物联网玩具',
+  },
+  {
+    key: '/bot-manager',
+    icon: <FileTextOutlined />,
+    label: '生活物联网智能体',
+    title: '生活物联网智能体管理平台',
   },
   {
     key: '/transcription',
@@ -228,6 +235,7 @@ function App() {
       <Routes>
         {/* 独立布局的路由 */}
         <Route path="/iot-toys" element={<IoTToys />} />
+        <Route path="/bot-manager/*" element={<BotManager />} />
 
         {/* 共享布局的路由 */}
         <Route element={<DefaultLayout />}>
