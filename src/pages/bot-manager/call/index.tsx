@@ -24,6 +24,7 @@ import IoTHeader from '../../iot-toys/IoTHeader';
 import { getAuth } from '../utils/storage';
 import ChatMessageList from './components/ChatMessageList';
 import VoiceSelector from '../components/VoiceSelector';
+import './call.css';
 
 const { Content } = Layout;
 
