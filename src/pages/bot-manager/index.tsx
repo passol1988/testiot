@@ -29,6 +29,7 @@ const BotManager = () => {
     loading,
     botList,
     fetchBotList,
+    fetchBotDetail,
     createBot,
     updateBot,
     publishBot,
@@ -173,16 +174,20 @@ const BotManager = () => {
               uploadFile={uploadFile}
               fetchVoices={fetchVoices}
               fetchPlugins={fetchPlugins}
-              fetchBotDetail={async () => {
-                // 这里需要从 useBotApi 获取
-                return null;
-              }}
+              fetchBotDetail={fetchBotDetail}
             />
           }
         />
 
         {/* 通话页面 */}
-        <Route path="/call/:botId" element={<CallPage />} />
+        <Route
+          path="/call/:botId"
+          element={
+            <CallPage
+              botList={botList}
+            />
+          }
+        />
       </Routes>
     </>
   );

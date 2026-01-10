@@ -1,25 +1,17 @@
 /**
  * Call Page Styles
- * 通话页面样式
+ * Reusing iot-toys page styles
  */
 
+/* Import iot-toys styles */
+@import '../../iot-toys/index.css';
+
+/* Call page specific overrides */
 .call-page-container {
   height: 100vh;
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
   position: relative;
   overflow: hidden;
-}
-
-.call-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  padding: 16px 20px;
-  background: rgba(26, 26, 46, 0.8);
-  backdrop-filter: blur(10px);
-  color: white;
 }
 
 .call-content {
@@ -114,6 +106,41 @@
 .audio-wave-bar:nth-child(3) { animation-delay: 0.2s; }
 .audio-wave-bar:nth-child(4) { animation-delay: 0.3s; }
 .audio-wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+/* 动画定义 */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes wave {
+  0% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.5);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* 响应式设计 */
 @media (max-width: 768px) {
