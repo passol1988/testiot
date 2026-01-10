@@ -13,8 +13,9 @@ import {
   Space,
   message,
   Spin,
+  Tag,
 } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons';
 import type { BotFormProps, BotFormData, PluginInfo } from '../types';
 import {
   REPLY_STYLE_OPTIONS,
@@ -54,15 +55,23 @@ const BotForm = ({
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
 
+  // 头像相关状态
+  const [currentIconUrl, setCurrentIconUrl] = useState<string | undefined>();
+  const [hasNewAvatar, setHasNewAvatar] = useState(false);
+
   // 表单状态
   const [customPrompt, setCustomPrompt] = useState('你是一个会讲故事、会聊天、会回答问题的好朋友。');
   const [replyStyle, setReplyStyle] = useState<BotFormData['replyStyle']>('适中详细');
   const [selectedValues, setSelectedValues] = useState<string[]>(['善良', '真诚']);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['好好吃饭', '爱阅读', '讲文明']);
   const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
-  const [voiceId, setVoiceId] = useState('zh_female_wan_warm');
-  const [voicePitch, setVoicePitch] = useState(1.0);
+  const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+
+  // 建议问题状态（独立的 tag 列表）
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(DEFAULT_SUGGESTED_QUESTIONS);
+  const [questionInput, setQuestionInput] = useState('');
+  const [questionInputVisible, setQuestionInputVisible] = useState(false);
 
   // 插件和音色选项
   const [pluginOptions, setPluginOptions] = useState<PluginInfo[]>([]);
@@ -103,20 +112,24 @@ const BotForm = ({
             setSelectedValues(extConfig.values);
             setSelectedHabits(extConfig.habits);
             setVoiceId(extConfig.voiceId);
-            setVoicePitch(extConfig.voicePitch);
             setVoiceSpeed(extConfig.voiceSpeed);
           }
 
-          // TODO: 从 API 获取智能体详情并填充表单
+          // 从 API 获取智能体详情并填充表单
           if (fetchBotDetail) {
             const botDetail = await fetchBotDetail(actualBotId);
             if (botDetail) {
+              // 保存原始 icon_url，用于显示
+              setCurrentIconUrl(botDetail.icon_url);
+              setHasNewAvatar(false);
+
+              // 加载建议问题列表
+              setSuggestedQuestions(botDetail.onboarding_info?.suggested_questions || DEFAULT_SUGGESTED_QUESTIONS);
+
               form.setFieldsValue({
                 name: botDetail.name,
                 description: botDetail.description,
-                icon_file_id: botDetail.icon_url?.includes('files.coze.cn')
-                  ? botDetail.icon_url.split('/').pop()
-                  : undefined,
+                // icon_file_id 不设置，保持为空
                 prompt_info: botDetail.prompt_info,
                 onboarding_info: botDetail.onboarding_info,
               });
@@ -153,22 +166,30 @@ const BotForm = ({
 
       const formData: BotFormData = {
         ...values,
+        // 只有上传了新头像时才传 icon_file_id
+        icon_file_id: hasNewAvatar ? values.icon_file_id : undefined,
         prompt_info: {
           prompt: currentPrompt,
         },
         onboarding_info: {
           prologue: values.onboarding_info?.prologue || DEFAULT_PROLOGUE,
-          suggested_questions: values.onboarding_info?.suggested_questions || DEFAULT_SUGGESTED_QUESTIONS,
+          suggested_questions: suggestedQuestions.length > 0 ? suggestedQuestions : DEFAULT_SUGGESTED_QUESTIONS,
         },
         plugin_id_list: selectedPlugins.length > 0 ? {
-          id_list: selectedPlugins.map(id => ({ plugin_id: id })),
+          id_list: selectedPlugins.map(id => {
+            // 从 pluginOptions 中查找对应的插件，获取 api_id
+            const plugin = pluginOptions.find((p: PluginInfo) => p.id === id);
+            return {
+              plugin_id: id,
+              api_id: plugin?.apiList?.[0]?.apiId,  // 使用第一个 API 的 ID
+            };
+          }),
         } : undefined,
         replyStyle,
         values: selectedValues,
         habits: selectedHabits,
         customPrompt,
         voiceId,
-        voicePitch,
         voiceSpeed,
       };
 
@@ -182,7 +203,6 @@ const BotForm = ({
           habits: selectedHabits,
           customPrompt,
           voiceId,
-          voicePitch,
           voiceSpeed,
         });
       }
@@ -246,7 +266,11 @@ const BotForm = ({
               label="头像"
               name="icon_file_id"
             >
-              <AvatarUpload uploadFile={uploadFile} />
+              <AvatarUpload
+                uploadFile={uploadFile}
+                initialUrl={currentIconUrl}
+                onChange={() => setHasNewAvatar(true)}
+              />
             </Form.Item>
 
             <Form.Item
@@ -373,18 +397,71 @@ const BotForm = ({
               />
             </Form.Item>
 
-            <Form.Item
-              label="建议问题"
-              name={['onboarding_info', 'suggested_questions']}
-            >
-              <Input.TextArea
-                placeholder="每行一个问题"
-                rows={4}
-                onChange={(e) => {
-                  const questions = e.target.value.split('\n').filter(q => q.trim());
-                  form.setFieldValue(['onboarding_info', 'suggested_questions'], questions);
-                }}
-              />
+            <Form.Item label="建议问题">
+              <div>
+                <div style={{ marginBottom: 8 }}>
+                  {suggestedQuestions.map((question, index) => (
+                    <Tag
+                      key={index}
+                      closable
+                      onClose={() => {
+                        const newQuestions = suggestedQuestions.filter((_, i) => i !== index);
+                        setSuggestedQuestions(newQuestions);
+                      }}
+                      style={{ marginBottom: 8, fontSize: 14, padding: '4px 10px' }}
+                    >
+                      {question}
+                    </Tag>
+                  ))}
+                </div>
+                {!questionInputVisible ? (
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setQuestionInputVisible(true)}
+                  >
+                    添加问题
+                  </Button>
+                ) : (
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      placeholder="输入问题"
+                      value={questionInput}
+                      onChange={(e) => setQuestionInput(e.target.value)}
+                      onPressEnter={() => {
+                        if (questionInput.trim()) {
+                          setSuggestedQuestions([...suggestedQuestions, questionInput.trim()]);
+                          setQuestionInput('');
+                          setQuestionInputVisible(false);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="primary"
+                      size="small"
+                      onClick={() => {
+                        if (questionInput.trim()) {
+                          setSuggestedQuestions([...suggestedQuestions, questionInput.trim()]);
+                          setQuestionInput('');
+                          setQuestionInputVisible(false);
+                        }
+                      }}
+                    >
+                      确定
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setQuestionInput('');
+                        setQuestionInputVisible(false);
+                      }}
+                    >
+                      取消
+                    </Button>
+                  </Space.Compact>
+                )}
+              </div>
             </Form.Item>
           </Card>
 
@@ -401,10 +478,8 @@ const BotForm = ({
           <Card title="语音配置" className="form-section-card" style={{ marginBottom: 24 }}>
             <VoiceSelector
               voiceId={voiceId}
-              pitch={voicePitch}
               speed={voiceSpeed}
               onVoiceChange={setVoiceId}
-              onPitchChange={setVoicePitch}
               onSpeedChange={setVoiceSpeed}
               supportEmotion={false}
             />

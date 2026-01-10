@@ -89,8 +89,7 @@ export interface BotFormData {
   values: string[];
   habits: string[];
   customPrompt: string;
-  voiceId: string;
-  voicePitch: number;
+  voiceId?: string;
   voiceSpeed: number;
 }
 
@@ -112,8 +111,7 @@ export interface BotExtConfig {
   values: string[];
   habits: string[];
   customPrompt: string;
-  voiceId: string;
-  voicePitch: number;
+  voiceId?: string;
   voiceSpeed: number;
 }
 
@@ -224,11 +222,9 @@ export interface PluginSelectorProps {
  * VoiceSelector Props
  */
 export interface VoiceSelectorProps {
-  voiceId: string;
-  pitch: number;
+  voiceId?: string;
   speed: number;
-  onVoiceChange: (voiceId: string) => void;
-  onPitchChange: (pitch: number) => void;
+  onVoiceChange: (voiceId?: string) => void;
   onSpeedChange: (speed: number) => void;
   supportEmotion: boolean;
 }

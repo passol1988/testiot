@@ -1,10 +1,10 @@
 /**
  * ChatMessageList - 对话消息列表组件
- * 与 bot-manager 的消息事件兼容
+ * 只处理流式事件，避免重复消息
  */
 
 import { useState, useEffect, useRef, type MutableRefObject } from 'react';
-import { type WsChatClient, WsChatEventNames, type WsChatEventData, ClientEventType, type AudioSentencePlaybackStartEvent } from '@coze/api/ws-tools';
+import { type WsChatClient, WsChatEventNames, type WsChatEventData } from '@coze/api/ws-tools';
 import { WebsocketsEventType, type ConversationAudioTranscriptCompletedEvent } from '@coze/api';
 
 interface Message {
@@ -12,8 +12,6 @@ interface Message {
   content: string;
   timestamp: number;
   isComplete?: boolean;
-  sentences?: string[];
-  activeSentenceIndex?: number;
 }
 
 interface ChatMessageListProps {
@@ -24,7 +22,6 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const isFirstDeltaRef = useRef(true);
-  const isFirstSentenceRef = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 自动滚动到底部
@@ -40,14 +37,12 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
         setMessages([]);
         setIsAiTyping(false);
         isFirstDeltaRef.current = true;
-        isFirstSentenceRef.current = true;
         return;
       }
       if (!event) return;
 
       switch (event.event_type) {
-
-        // 流式模式事件
+        // 用户语音转写完成
         case WebsocketsEventType.CONVERSATION_AUDIO_TRANSCRIPT_COMPLETED: {
           const { content } = (event as ConversationAudioTranscriptCompletedEvent).data;
           const timestamp = Date.now();
@@ -55,6 +50,7 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
           break;
         }
 
+        // AI 消息流式增量
         case WebsocketsEventType.CONVERSATION_MESSAGE_DELTA: {
           if (event.data.content) {
             setIsAiTyping(true);
@@ -90,6 +86,7 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
           break;
         }
 
+        // AI 消息完成
         case WebsocketsEventType.CONVERSATION_MESSAGE_COMPLETED: {
           // 标记最后一条 AI 消息完成
           setMessages(prev => {
@@ -101,60 +98,6 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
           });
           setIsAiTyping(false);
           isFirstDeltaRef.current = true;
-          break;
-        }
-
-        // 音字同步模式事件
-        case ClientEventType.AUDIO_SENTENCE_PLAYBACK_START: {
-          const { content } = (event as AudioSentencePlaybackStartEvent).data;
-          setIsAiTyping(true);
-          if (isFirstSentenceRef.current) {
-            // 创建新的 AI 消息
-            setMessages(prev => [
-              ...prev,
-              {
-                type: 'ai',
-                timestamp: Date.now(),
-                content,
-                isComplete: false,
-                sentences: [content],
-                activeSentenceIndex: 0,
-              },
-            ]);
-            isFirstSentenceRef.current = false;
-          } else {
-            // 追加句子
-            setMessages(prev => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage && lastMessage.type === 'ai' && !lastMessage.isComplete) {
-                const sentences = [...(lastMessage.sentences || []), content];
-                return [
-                  ...prev.slice(0, -1),
-                  {
-                    ...lastMessage,
-                    content: lastMessage.content + content,
-                    sentences,
-                    activeSentenceIndex: sentences.length - 1,
-                  },
-                ];
-              }
-              return prev;
-            });
-          }
-          break;
-        }
-
-        case ClientEventType.AUDIO_SENTENCE_PLAYBACK_ENDED: {
-          // 标记最后一条 AI 消息完成
-          setMessages(prev => {
-            const lastMessage = prev[prev.length - 1];
-            if (lastMessage && lastMessage.type === 'ai') {
-              return [...prev.slice(0, -1), { ...lastMessage, isComplete: true }];
-            }
-            return prev;
-          });
-          setIsAiTyping(false);
-          isFirstSentenceRef.current = true;
           break;
         }
 
@@ -177,7 +120,7 @@ const ChatMessageList = ({ clientRef }: ChatMessageListProps) => {
   };
 
   return (
-    <div className="chat-messages">
+    <div className="chat-message-list">
       {messages.map((msg, index) => (
         <div key={index} className={`chat-message chat-message--${msg.type}`}>
           <div className={`message-bubble message-bubble--${msg.type}`}>

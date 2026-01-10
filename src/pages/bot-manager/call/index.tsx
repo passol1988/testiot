@@ -21,7 +21,7 @@ import { AudioConfig, type AudioConfigRef } from '../../../components/audio-conf
 import SendMessage from '../../chat/send-message';
 import EventInput from '../../../components/event-input';
 import IoTHeader from '../../iot-toys/IoTHeader';
-import { getAuth } from '../utils/storage';
+import { getAuth, getBotExtConfig, setBotExtConfig } from '../utils/storage';
 import ChatMessageList from './components/ChatMessageList';
 import VoiceSelector from '../components/VoiceSelector';
 import './call.css';
@@ -57,7 +57,6 @@ const CallPage = ({ botList }: CallPageProps) => {
   // 状态管理
   const [callState, setCallState] = useState<CallState>('idle');
   const [callDuration, setCallDuration] = useState(0);
-  const [durationTimer, setDurationTimer] = useState<NodeJS.Timeout | null>(null);
 
   // 找到对应的智能体信息
   const botInfo = botList.find(bot => bot.bot_id === botId) || {
@@ -72,8 +71,9 @@ const CallPage = ({ botList }: CallPageProps) => {
 
   // 获取扩展配置
   const getExtConfig = useCallback(() => {
-    const ext = localStorage.getItem(`bot-manager_ext_${botId}`);
-    return ext ? JSON.parse(ext) : { voiceId: '', voicePitch: 1, voiceSpeed: 1 };
+    if (!botId) return { voiceId: '', voiceSpeed: 1 };
+    const ext = getBotExtConfig(botId);
+    return ext || { voiceId: '', voiceSpeed: 1 };
   }, [botId]);
 
   const extConfig = getExtConfig();
@@ -85,8 +85,7 @@ const CallPage = ({ botList }: CallPageProps) => {
 
   // TTS 设置状态
   const [ttsVisible, setTtsVisible] = useState(false);
-  const [localVoiceId, setLocalVoiceId] = useState(extConfig.voiceId || '');
-  const [localVoicePitch, setLocalVoicePitch] = useState(extConfig.voicePitch || 1);
+  const [localVoiceId, setLocalVoiceId] = useState<string | undefined>(extConfig.voiceId || undefined);
   const [localVoiceSpeed, setLocalVoiceSpeed] = useState(extConfig.voiceSpeed || 1);
 
   // 检查登录状态
@@ -109,24 +108,20 @@ const CallPage = ({ botList }: CallPageProps) => {
 
   // 通话计时
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
     if (callState === 'connected') {
-      const timer = setInterval(() => {
+      timer = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
-      setDurationTimer(timer);
-    } else {
-      if (durationTimer) {
-        clearInterval(durationTimer);
-        setDurationTimer(null);
-      }
     }
 
     return () => {
-      if (durationTimer) {
-        clearInterval(durationTimer);
+      if (timer) {
+        clearInterval(timer);
       }
     };
-  }, [callState, durationTimer]);
+  }, [callState]);
 
   /**
    * 格式化通话时长
@@ -158,7 +153,7 @@ const CallPage = ({ botList }: CallPageProps) => {
       allowPersonalAccessTokenInBrowser: true,
       botId: botId,
       debug: audioConfig?.debug,
-      voiceId: extConfig.voiceId || undefined,
+      voiceId: localVoiceId || undefined,
       aiDenoisingConfig: !audioConfig?.noiseSuppression ? {
         mode: audioConfig?.denoiseMode,
         level: audioConfig?.denoiseLevel,
@@ -208,6 +203,10 @@ const CallPage = ({ botList }: CallPageProps) => {
       setCallState('calling');
       if (!clientRef.current) await initClient();
 
+      // 将 speed (0.5-2.0) 映射到 speech_rate (-50 到 100)
+      // 公式: speech_rate = (speed - 1) * 100
+      const speechRate = Math.round((localVoiceSpeed - 1) * 100);
+
       const chatUpdate: any = {
         event_type: 'chat.update',
         data: {
@@ -215,7 +214,8 @@ const CallPage = ({ botList }: CallPageProps) => {
           output_audio: {
             codec: 'pcm',
             pcm_config: { sample_rate: 24000 },
-            voice_id: extConfig.voiceId || undefined,
+            voice_id: localVoiceId || undefined,
+            speech_rate: speechRate,
           },
           turn_detection: { type: 'server_vad' },
           need_play_prologue: true,
@@ -248,10 +248,6 @@ const CallPage = ({ botList }: CallPageProps) => {
     }
     setCallState('idle');
     setCallDuration(0);
-    if (durationTimer) {
-      clearInterval(durationTimer);
-      setDurationTimer(null);
-    }
     message.success('通话已结束');
   };
 
@@ -292,10 +288,11 @@ const CallPage = ({ botList }: CallPageProps) => {
 
   // 文本消息发送回调（SendMessage 组件需要但当前不使用）
   const onSendText = useCallback((_text: string) => {
-    // 用户发送的文本消息，ChatMessageList 会自动监听并显示
+    // ChatMessageList 会自动监听并显示聊天消息
   }, []);
 
   // 高级配置内容
+  const speechRate = Math.round((localVoiceSpeed - 1) * 100);
   const advancedSettingsContent = (
     <div style={{ width: 300 }}>
       <AudioConfig clientRef={clientRef} ref={audioConfigRef} />
@@ -307,7 +304,8 @@ const CallPage = ({ botList }: CallPageProps) => {
             output_audio: {
               codec: 'pcm',
               pcm_config: { sample_rate: 24000 },
-              voice_id: extConfig.voiceId,
+              voice_id: localVoiceId || undefined,
+              speech_rate: speechRate,
             },
             turn_detection: { type: 'server_vad' },
             need_play_prologue: true,
@@ -322,10 +320,8 @@ const CallPage = ({ botList }: CallPageProps) => {
     <div style={{ width: 320 }}>
       <VoiceSelector
         voiceId={localVoiceId}
-        pitch={localVoicePitch}
         speed={localVoiceSpeed}
         onVoiceChange={setLocalVoiceId}
-        onPitchChange={setLocalVoicePitch}
         onSpeedChange={setLocalVoiceSpeed}
         supportEmotion={false}
       />
@@ -334,8 +330,20 @@ const CallPage = ({ botList }: CallPageProps) => {
         block
         style={{ marginTop: 16 }}
         onClick={() => {
-          const newExtConfig = { voiceId: localVoiceId, voicePitch: localVoicePitch, voiceSpeed: localVoiceSpeed };
-          localStorage.setItem(`bot-manager_ext_${botId}`, JSON.stringify(newExtConfig));
+          if (!botId) return;
+          // 获取现有配置，保留其他字段
+          const existingConfig = getBotExtConfig(botId);
+          const newExtConfig = {
+            ...(existingConfig || {
+              replyStyle: '适中详细' as const,
+              values: ['善良', '真诚'],
+              habits: ['好好吃饭', '爱阅读', '讲文明'],
+              customPrompt: '你是一个会讲故事、会聊天、会回答问题的好朋友。',
+            }),
+            voiceId: localVoiceId,
+            voiceSpeed: localVoiceSpeed,
+          };
+          setBotExtConfig(botId, newExtConfig);
           message.success('TTS设置已保存，重新连接后生效');
           setTtsVisible(false);
         }}

@@ -10,8 +10,6 @@ import type { PromptTemplateOptions } from '../types';
  */
 const PROMPT_TEMPLATE = `{{customPrompt}}
 
-你是一个面向2-8岁儿童的AI助手。
-
 【回复风格】
 {{replyStyle}}
 
@@ -21,16 +19,20 @@ const PROMPT_TEMPLATE = `{{customPrompt}}
 【习惯培养】
 {{habits}}
 
+{{#if skills}}
 【技能能力】
 你拥有以下技能：{{skills}}
+{{/if}}
 
 【重要约束】
 - 你的回复要轻松有趣，符合儿童心智
-- 严禁讨论不适合未成年人的话题（包括暴力、色情、消极等内容）
+- 严禁讨论不适合未成年人的话题（包括暴力、色情、消极、恐怖等内容）
 - 如遇到敏感话题，请温和引导至其他适合的内容
 - 使用简单易懂的语言，避免复杂词汇和长句
 - 多使用鼓励和积极正面的语言
-- 可以适当使用emoji表情增加趣味性`;
+- 可以适当使用emoji表情增加趣味性
+- 回复长度控制在合理范围内，避免过于冗长
+- 保持友好和耐心，不要催促或表现出不耐烦`;
 
 /**
  * 生成 Prompt
@@ -44,12 +46,23 @@ export const generatePrompt = (options: PromptTemplateOptions): string => {
     '丰富详尽': '详细生动地回答，多用比喻和描述。',
   }[options.replyStyle];
 
-  return PROMPT_TEMPLATE.replace('{{customPrompt}}', options.customPrompt.trim())
+  let result = PROMPT_TEMPLATE
+    .replace('{{customPrompt}}', options.customPrompt.trim())
     .replace('{{replyStyle}}', replyStyleText)
     .replace('{{values}}', options.values.join('、') || '善良、真诚')
-    .replace('{{habits}}', options.habits.join('、') || '保持良好习惯')
-    .replace('{{skills}}', options.skills.join('、') || '聊天对话')
-    .trim();
+    .replace('{{habits}}', options.habits.join('、') || '保持良好习惯');
+
+  // 处理技能部分
+  if (options.skills && options.skills.length > 0) {
+    result = result.replace('{{#if skills}}', '')
+      .replace('{{/if}}', '')
+      .replace('{{skills}}', options.skills.join('、'));
+  } else {
+    // 移除技能部分
+    result = result.replace(/{{#if skills}}[\s\S]*?{{\/if}}/g, '').trim();
+  }
+
+  return result;
 };
 
 /**

@@ -190,20 +190,27 @@ export const useBotApi = (): UseBotApiReturn => {
 
     setLoading(true);
     try {
-      await api.bots.update({
+      // 过滤掉 undefined 的字段
+      const updateParams: any = {
         bot_id: data.bot_id,
-        name: data.name,
-        description: data.description,
-        icon_file_id: data.icon_file_id,
-        prompt_info: data.prompt_info,
-        onboarding_info: data.onboarding_info,
-        plugin_id_list: data.plugin_id_list,
-      });
+      };
+
+      if (data.name !== undefined) updateParams.name = data.name;
+      if (data.description !== undefined) updateParams.description = data.description;
+      if (data.icon_file_id !== undefined) updateParams.icon_file_id = data.icon_file_id;
+      if (data.prompt_info !== undefined) updateParams.prompt_info = data.prompt_info;
+      if (data.onboarding_info !== undefined) updateParams.onboarding_info = data.onboarding_info;
+      if (data.plugin_id_list !== undefined) updateParams.plugin_id_list = data.plugin_id_list;
+
+      console.log('更新智能体参数:', JSON.stringify(updateParams, null, 2));
+
+      await api.bots.update(updateParams);
       message.success('智能体更新成功');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update bot:', error);
-      message.error(`更新智能体失败：${(error as Error).message}`);
+      console.error('错误详情:', JSON.stringify(error, null, 2));
+      message.error(`更新智能体失败：${error.message || error.msg || '未知错误'}`);
       return false;
     } finally {
       setLoading(false);
@@ -223,7 +230,7 @@ export const useBotApi = (): UseBotApiReturn => {
     try {
       await api.bots.publish({
         bot_id: botId,
-        connector_ids: ['10000122'], // 扣子商店
+        connector_ids: ['1024'], // 1024 渠道
       });
       message.success('智能体发布成功');
       return true;
@@ -284,28 +291,46 @@ export const useBotApi = (): UseBotApiReturn => {
    * 获取插件列表
    */
   const fetchPlugins = useCallback(async (): Promise<PluginInfo[]> => {
-    // 使用预设插件列表
+    // 返回预设插件列表（包含 api_id）
     return [
       {
         id: '7548028105068183561',
         name: '今日诗词',
-        description: '每日精选诗句，附带作者简介、完整原文与详细解释',
-        icon: '',
-        apiList: [],
-      },
-      {
-        id: '7495098187846385704',
-        name: '童话故事合集',
-        description: '安徒生童话、格林童话、一千零一夜等经典童话',
-        icon: '',
-        apiList: [],
+        description: '无需参数配置，无需认证授权，每次访问即返回一句精选诗句，附带作者简介、完整原文与详细解释。让古典诗词的智慧与美感，轻松融入您的日常。',
+        icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/4223672455014680_1757412179311746878_cfqpVn9V7Q.jpg',
+        apiList: [
+          {
+            apiId: '7548028105068199945',
+            name: 'daily_poetry',
+            description: '即开即用：无需API密钥或身份验证，直接调用即可返回结果',
+          }
+        ],
       },
       {
         id: '7477951904853639209',
         name: '百度天气插件',
         description: '获取实时天气查询',
-        icon: '',
-        apiList: [],
+        icon: 'https://lf3-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/1018601783965514_1741096339319344099_VRyg92Wosy.png',
+        apiList: [
+          {
+            apiId: '7477951904853655593',
+            name: 'weather',
+            description: '输入你所在城市或经纬度等参数，以获取最新的天气状况。',
+          }
+        ],
+      },
+      {
+        id: '7375329794130591770',
+        name: '亲子关系问题清单',
+        description: '亲子关系是家庭中非常重要的一部分，它影响着孩子的成长和发展。这个插件是关于亲子关系问题的清单。当用户有亲子关系问题，不知道该问哪些问题时，这个插件可以将相关问题展示出来，便于用户提问。',
+        icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/default_icon.png',
+        apiList: [
+          {
+            apiId: '7375329794130608154',
+            name: 'parent_children_QA',
+            description: '亲子关系问题清单',
+          }
+        ],
       },
     ];
   }, []);

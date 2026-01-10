@@ -319,3 +319,490 @@ baseWsURL: 'wss://ws.coze.cn'  // 会变成 /v1/chat ✅
 
 ### 提交记录
 - `d945dd0`: feat(call): implement new UI design with state transitions and typewriter effect
+
+---
+
+## 通话页面 UI 修复 (2026-01-10)
+
+### 修复内容
+
+#### 1. 头像显示和上传修复
+**问题**: 编辑页面头像错位，不支持显示完整 URL
+**解决方案**:
+- 修改 `AvatarUpload.tsx`，新增 `getAvatarUrl()` 函数
+- 支持显示完整 URL（`icon_url`）和文件 ID（`icon_file_id`）
+- 修改 `BotForm.tsx`，编辑时直接使用 `icon_url`
+
+```typescript
+// 自动识别 URL 或文件 ID
+const getAvatarUrl = (val?: string): string | undefined => {
+  if (!val) return undefined;
+  if (val.startsWith('http://') || val.startsWith('https://')) {
+    return val;  // 完整 URL 直接使用
+  }
+  return `https://files.coze.cn/files/${val}`;  // 文件 ID 拼接
+};
+```
+
+#### 2. Prompt 模板改进
+**问题**:
+- 包含"你是一个面向2-8岁儿童的AI助手"固定语句
+- 缺少更多限制条件
+- 插件能力说明不够突出
+
+**解决方案**:
+- 移除固定年龄限制语句
+- 新增限制条件：
+  - 严禁暴力、色情、消极、恐怖等内容
+  - 回复长度控制在合理范围
+  - 保持友好和耐心
+- 插件能力作为可选项，有插件时才显示
+
+#### 3. plugin_id_list 格式修复
+**问题**: API 格式错误
+```typescript
+// 错误格式
+"plugin_id_list": {
+  "id_list": [{"plugin_id": "7495098187846385704"}]
+}
+
+// 正确格式
+"plugin_id_list": ["7495098187846385704", "7477951904853639209"]
+```
+
+**解决方案**:
+- 修改 `types.ts` 中的 `BotFormData.plugin_id_list` 类型：从对象改为字符串数组
+- 修改 `BotForm.tsx` 提交逻辑：直接传递 `selectedPlugins` 数组
+
+#### 4. TTS 参数修复
+**问题**:
+- `pitch` 参数不受 Coze API 支持
+- `speech_rate` 参数未正确传递
+
+**解决方案**:
+- 移除 `pitch`（音调）参数和状态
+- 保留 `speed`（语速）参数，并正确映射到 `speech_rate`
+  - speed 范围: 0.5x - 2.0x（用户友好显示）
+  - speech_rate 范围: -50 - 100（API 实际值）
+  - 映射公式: `speech_rate = (speed - 1) * 100`
+
+#### 5. 聊天消息重复问题修复
+**问题**: ChatMessageList 同时监听流式和句子事件，导致重复显示
+**解决方案**:
+- 只处理流式事件：`CONVERSATION_MESSAGE_DELTA`、`CONVERSATION_MESSAGE_COMPLETED`
+- 移除句子事件处理
+- 移除打字机效果，直接显示完整文本
+
+### 修改文件列表
+```
+src/pages/bot-manager/
+├── call/
+│   ├── components/ChatMessageList.tsx  # 移除打字机效果
+│   └── index.tsx                       # 修复 TTS 参数传递
+├── components/
+│   ├── AvatarUpload.tsx               # 支持完整 URL 显示
+│   ├── BotForm.tsx                    # 修复插件格式、头像加载
+│   └── VoiceSelector.tsx              # 移除 pitch 参数
+├── utils/
+│   └── prompt-template.ts             # 改进 Prompt 模板
+└── types.ts                           # 修复类型定义
+```
+
+### 技术要点
+1. **头像兼容性**: 自动识别 URL 或文件 ID，无需手动转换
+2. **Prompt 灵活性**: 模板支持可选区块（技能能力）
+3. **API 格式对齐**: 严格遵循 Coze API 规范
+4. **TTS 参数映射**: 用户友好值 → API 实际值的正确转换
+
+---
+
+## 头像逻辑修复 (2026-01-10)
+
+### 问题说明
+**错误的认知**: 之前认为 icon_url 和 icon_file_id 可以互相转换
+
+**正确的理解**:
+- **GET** `/v1/bots/:bot_id` 返回 `icon_url`（完整 URL，如 `https://files.coze.cn/files/xxx`）
+- **POST/PUT** 创建/更新时使用 `icon_file_id`（文件 ID，如 `xxx`）
+- 两者没有直接转换关系，不能混用
+
+### 修复方案
+
+#### AvatarUpload 组件
+- 新增 `initialUrl` prop：用于显示编辑时的原始头像（完整 URL）
+- `value` 仍存储文件 ID（上传后）
+- `getDisplayUrl()` 优先级：value > initialUrl
+
+```typescript
+interface AvatarUploadProps {
+  value?: string;           // 存储上传后的文件 ID
+  initialUrl?: string;      // 编辑时的原始头像 URL（仅显示）
+  onChange?: (fileId: string) => void;
+  uploadFile?: (file: File) => Promise<string | null>;
+}
+
+const getDisplayUrl = (): string | undefined => {
+  if (value) {
+    // 上传了新头像，显示文件 ID
+    return value.startsWith('http') ? value : `https://files.coze.cn/files/${value}`;
+  }
+  // 没上传新头像，显示原始 URL
+  return initialUrl;
+};
+```
+
+#### BotForm 组件
+- 新增状态：
+  - `currentIconUrl`：保存从 API 获取的原始 icon_url
+  - `hasNewAvatar`：追踪用户是否上传了新头像
+- 加载时：保存 `icon_url` 到 `currentIconUrl`，不设置 `icon_file_id`
+- 提交时：只有 `hasNewAvatar` 为 true 时才传 `icon_file_id`
+
+```typescript
+// 加载数据
+const botDetail = await fetchBotDetail(actualBotId);
+setCurrentIconUrl(botDetail.icon_url);  // 保存原始 URL
+setHasNewAvatar(false);
+// 不设置 icon_file_id，保持表单字段为空
+
+// 提交数据
+const formData: BotFormData = {
+  ...values,
+  // 只有上传了新头像时才传 icon_file_id
+  icon_file_id: hasNewAvatar ? values.icon_file_id : undefined,
+};
+```
+
+### 逻辑流程
+
+**创建模式**:
+1. 用户上传头像 → AvatarUpload 返回文件 ID → `onChange(fileId)`
+2. `hasNewAvatar` 变为 true
+3. 提交时传递 `icon_file_id`
+
+**编辑模式（不换头像）**:
+1. 从 API 获取 `icon_url` → 保存到 `currentIconUrl`
+2. AvatarUpload 显示 `initialUrl={currentIconUrl}`
+3. 用户不上传新头像 → `hasNewAvatar` 保持 false
+4. 提交时不传 `icon_file_id`，服务器保持原头像
+
+**编辑模式（换头像）**:
+1. 从 API 获取 `icon_url` → 保存到 `currentIconUrl`
+2. AvatarUpload 显示 `initialUrl={currentIconUrl}`
+3. 用户上传新头像 → `onChange(fileId)` → `hasNewAvatar` 变为 true
+4. 提交时传递新的 `icon_file_id`
+
+### 修改文件
+```
+src/pages/bot-manager/components/
+├── AvatarUpload.tsx    # 新增 initialUrl prop
+└── BotForm.tsx         # 新增 currentIconUrl, hasNewAvatar 状态
+```
+
+---
+
+## 编辑接口格式修复 (2026-01-10)
+
+### 问题说明
+**错误**: "The field request provided is not a valid json or update agent request"
+
+**原因**: 之前错误地将 `plugin_id_list` 改成了 `string[]` 格式
+
+**正确的格式**:
+```typescript
+// 错误格式（之前改错了）
+plugin_id_list: ["xxx", "yyy"]
+
+// 正确格式（API 要求）
+plugin_id_list: {
+  id_list: [
+    { plugin_id: "xxx" },
+    { plugin_id: "yyy" }
+  ]
+}
+```
+
+### API 类型定义
+
+根据 `@coze/api` 的类型定义：
+
+```typescript
+// CreateBotReq
+interface CreateBotReq {
+  // ...
+  plugin_id_list?: {
+    id_list: PluginIdInfo[];
+  };
+}
+
+// UpdateBotReq
+interface UpdateBotReq {
+  bot_id: string;
+  // ...
+  plugin_id_list?: {
+    id_list: PluginIdInfo[];
+  };
+}
+
+interface PluginIdInfo {
+  plugin_id: string;
+  api_id?: string;
+}
+```
+
+### 修复内容
+
+1. **types.ts**: 恢复正确的 `plugin_id_list` 类型定义
+2. **BotForm.tsx**: 恢复正确的数据转换逻辑
+
+```typescript
+// BotForm.tsx 提交时
+plugin_id_list: selectedPlugins.length > 0 ? {
+  id_list: selectedPlugins.map(id => ({ plugin_id: id })),
+} : undefined
+```
+
+### 教训
+用户之前提供的"正确格式"示例可能有误，应该以官方 SDK 的类型定义为准。
+
+---
+
+## 插件 api_id 支持 (2026-01-10)
+
+### 问题说明
+**错误**: `code: 4000, msg: Request parameter error`
+
+**原因**: 插件配置缺少配套的 `api_id` 参数
+
+### 修复内容
+
+#### API 要求格式
+```typescript
+// 正确格式（需要 api_id）
+plugin_id_list: {
+  id_list: [
+    {
+      plugin_id: "7548028105068183561",  // 插件 ID
+      api_id: "7548028105068199945"    // 配套的 API ID（强烈推荐）
+    }
+  ]
+}
+```
+
+#### 代码修改
+
+1. **constants.ts**: 添加每个插件的 api_id
+```typescript
+export const DEFAULT_PLUGINS = [
+  {
+    id: '7548028105068183561',
+    name: '今日诗词',
+    api_id: '7548028105068199945',  // daily_poetry
+  },
+  {
+    id: '7495098187846385704',
+    name: '童话故事合集',
+    api_id: '7495098187846404260',  // fairy_tales
+  },
+  {
+    id: '7477951904853639209',
+    name: '百度天气插件',
+    api_id: '7477951904853655593',  // weather
+  },
+];
+```
+
+2. **use-bot-api.ts**: fetchPlugins 返回完整插件信息
+```typescript
+return [
+  {
+    id: '7548028105068183561',
+    name: '今日诗词',
+    description: '...',
+    icon: '...',
+    apiList: [
+      {
+        apiId: '7548028105068199945',
+        name: 'daily_poetry',
+        description: '...'
+      }
+    ],
+  },
+  // ...
+];
+```
+
+3. **BotForm.tsx**: 映射 plugin_id 和 api_id
+```typescript
+plugin_id_list: selectedPlugins.length > 0 ? {
+  id_list: selectedPlugins.map(id => {
+    const plugin = pluginOptions.find((p: PluginInfo) => p.id === id);
+    return {
+      plugin_id: id,
+      api_id: plugin?.apiList?.[0]?.apiId,  // 使用第一个 API 的 ID
+    };
+  }),
+} : undefined
+```
+
+#### API 文档更新
+更新了 `01-create-bot.md` 和 `02-update-bot.md`，添加 api_id 的说明和示例。
+
+### 修改文件
+```
+src/pages/bot-manager/
+├── utils/constants.ts           # 添加 api_id 到 DEFAULT_PLUGINS
+├── hooks/use-bot-api.ts         # fetchPlugins 返回 apiList
+└── components/BotForm.tsx       # 映射 plugin_id 和 api_id
+
+.claude-workspace/api-docs/
+├── 01-create-bot.md             # 添加 api_id 说明
+└── 02-update-bot.md             # 添加 api_id 说明
+```
+
+---
+
+## UI 和功能优化 (2026-01-11)
+
+### 变更内容
+
+#### 1. 建议问题改为 Tag 列表形式
+**问题**: 之前使用 Textarea 输入，用户需要手动分隔问题
+
+**解决方案**: 改为 Tag 列表，支持添加/删除单个问题
+```typescript
+// 新增状态
+const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(DEFAULT_SUGGESTED_QUESTIONS);
+const [questionInput, setQuestionInput] = useState('');
+const [questionInputVisible, setQuestionInputVisible] = useState(false);
+
+// UI: Tag 列表 + 添加按钮
+<Form.Item label="建议问题">
+  <div>
+    <div style={{ marginBottom: 8 }}>
+      {suggestedQuestions.map((question, index) => (
+        <Tag key={index} closable onClose={() => removeQuestion(index)}>
+          {question}
+        </Tag>
+      ))}
+    </div>
+    {!questionInputVisible ? (
+      <Button type="dashed" size="small" icon={<PlusOutlined />}>添加问题</Button>
+    ) : (
+      <Space.Compact>
+        <Input placeholder="输入问题" ... />
+        <Button type="primary">确定</Button>
+        <Button>取消</Button>
+      </Space.Compact>
+    )}
+  </div>
+</Form.Item>
+```
+
+#### 2. 发布渠道修改
+**变更**: connector_ids 从 '10000122' 改为 '1024'
+```typescript
+// use-bot-api.ts: publishBot
+await api.bots.publish({
+  bot_id: botId,
+  connector_ids: ['1024'],  // 改为 1024 渠道
+});
+```
+
+#### 3. 音色默认值修改
+**问题**: 之前默认值为 'zh_female_wan_warm'，即使不选择也会传递
+
+**解决方案**: 改为 undefined，不选择时不传递
+```typescript
+// types.ts
+export interface VoiceSelectorProps {
+  voiceId?: string;  // 改为可选
+  // ...
+}
+
+// BotForm.tsx
+const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
+
+// VoiceSelector.tsx
+// 移除失败时的 fallback mock 数据
+setVoices([]);  // 失败时返回空列表
+```
+
+#### 4. 音色列表分页加载
+**问题**: 音色数量超过 100 个，固定加载 100 个无法显示全部
+
+**解决方案**: 实现滚动加载更多
+```typescript
+const PAGE_SIZE = 50;
+const [page, setPage] = useState(1);
+const [hasMore, setHasMore] = useState(true);
+const [loadingMore, setLoadingMore] = useState(false);
+
+// 滚动到底部时加载下一页
+const handlePopupScroll = (e: any) => {
+  const target = e.target as HTMLElement;
+  if (target.scrollTop + target.offsetHeight >= target.scrollHeight - 10) {
+    if (!loadingMore && hasMore) {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchVoices(nextPage, true);  // append = true
+    }
+  }
+};
+
+// Select 组件添加 onPopupScroll
+<Select onPopupScroll={handlePopupScroll} loading={loadingMore} ... />
+```
+
+#### 5. 修复 TTS 设置存储读取问题
+**问题**: 编辑智能体后保存的音色，在 TTS 设置中无法读取
+
+**原因**:
+- BotForm 使用 `setBotExtConfig` 保存到 `bot-manager_ext_config`
+- call 页面直接从 `bot-manager_ext_${botId}` 读取（key 不匹配）
+
+**解决方案**: 统一使用 storage 工具函数
+```typescript
+// call/index.tsx: 修改前
+const getExtConfig = () => {
+  const ext = localStorage.getItem(`bot-manager_ext_${botId}`);  // 错误的 key
+  return ext ? JSON.parse(ext) : { voiceId: '', voiceSpeed: 1 };
+};
+
+// call/index.tsx: 修改后
+const getExtConfig = () => {
+  const ext = getBotExtConfig(botId);  // 使用正确的工具函数
+  return ext || { voiceId: '', voiceSpeed: 1 };
+};
+
+// 保存时也使用 setBotExtConfig
+<Button onClick={() => {
+  const existingConfig = getBotExtConfig(botId);
+  const newExtConfig = {
+    ...(existingConfig || defaultConfig),
+    voiceId: localVoiceId,
+    voiceSpeed: localVoiceSpeed,
+  };
+  setBotExtConfig(botId, newExtConfig);  // 使用正确的工具函数
+}}>
+```
+
+### 修改文件列表
+```
+src/pages/bot-manager/
+├── call/
+│   └── index.tsx                    # 修复 TTS 配置读取/保存
+├── components/
+│   ├── BotForm.tsx                  # Tag 列表 UI、voiceId 默认值
+│   └── VoiceSelector.tsx            # 分页加载、移除 mock 数据
+├── hooks/
+│   └── use-bot-api.ts               # connector_ids 改为 1024
+└── types.ts                         # voiceId 改为可选
+```
+
+### 技术要点
+1. **Tag 列表**: 更友好的交互体验，支持单独添加/删除
+2. **分页加载**: Select 的 `onPopupScroll` 事件监听滚动
+3. **存储统一**: 使用 `getBotExtConfig/setBotExtConfig` 工具函数，避免 key 不匹配
+

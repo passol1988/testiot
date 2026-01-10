@@ -44,10 +44,29 @@ export const HABITS_OPTIONS = [
 ] as const;
 
 // 默认插件（预设数据）
+// 注意：每个插件都需要配套的 api_id
 export const DEFAULT_PLUGINS = [
-  { id: '7548028105068183561', name: '今日诗词' },
-  { id: '7495098187846385704', name: '童话故事合集' },
-  { id: '7477951904853639209', name: '百度天气插件' },
+  {
+    id: '7548028105068183561',
+    name: '今日诗词',
+    api_id: '7548028105068199945',  // daily_poetry
+    description: '无需参数配置，无需认证授权，每次访问即返回一句精选诗句，附带作者简介、完整原文与详细解释。让古典诗词的智慧与美感，轻松融入您的日常。',
+    icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/4223672455014680_1757412179311746878_cfqpVn9V7Q.jpg',
+  },
+  {
+    id: '7477951904853639209',
+    name: '百度天气插件',
+    api_id: '7477951904853655593',  // weather
+    description: '获取实时天气查询',
+    icon: 'https://lf3-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/1018601783965514_1741096339319344099_VRyg92Wosy.png',
+  },
+  {
+    id: '7375329794130591770',
+    name: '亲子关系问题清单',
+    api_id: '7375329794130608154',  // parent_children_QA
+    description: '亲子关系是家庭中非常重要的一部分，它影响着孩子的成长和发展。这个插件是关于亲子关系问题的清单。当用户有亲子关系问题，不知道该问哪些问题时，这个插件可以将相关问题展示出来，便于用户提问。',
+    icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/default_icon.png',
+  },
 ] as const;
 
 // 音色配置范围
