@@ -3,10 +3,10 @@
  * 主入口组件
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Result, Button } from 'antd';
-import { OfflineOutlined } from '@ant-design/icons';
+import { LoginOutlined } from '@ant-design/icons';
 import DatasetList from './components/DatasetList';
 import DatasetForm from './components/DatasetForm';
 import DatasetDetail from './components/DatasetDetail';
@@ -27,6 +27,7 @@ const DatasetManager: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [formDatasetId, setFormDatasetId] = useState<string>();
   const [authChecked, setAuthChecked] = useState(false);
+  const actionProcessedRef = useRef(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -39,12 +40,19 @@ const DatasetManager: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (action === 'create') {
+    // Only process action if it's not already being processed
+    if (action === 'create' && !formVisible && !actionProcessedRef.current) {
+      actionProcessedRef.current = true;
       handleOpenCreateForm();
-    } else if (action === 'edit' && id) {
+    } else if (action === 'edit' && id && !formVisible && !actionProcessedRef.current) {
+      actionProcessedRef.current = true;
       handleOpenEditForm(id);
     }
-  }, [action, id]);
+    // Reset the flag when action changes
+    if (!action) {
+      actionProcessedRef.current = false;
+    }
+  }, [action, id, formVisible]);
 
   const handleOpenCreateForm = useCallback(() => {
     setFormMode('create');
@@ -60,13 +68,22 @@ const DatasetManager: React.FC = () => {
 
   const handleCloseForm = useCallback(() => {
     setFormVisible(false);
-    navigate('/datasets');
-  }, [navigate]);
+    setFormDatasetId(undefined);
+    // Navigate to clean URL
+    if (id) {
+      navigate(`/datasets/${id}`);
+    } else {
+      navigate('/datasets');
+    }
+  }, [navigate, id]);
 
   const handleFormSubmit = useCallback(async (data: DatasetFormData): Promise<string | null> => {
     if (formMode === 'create') {
       const datasetId = await api.createDataset(data);
       if (datasetId) {
+        api.fetchDatasets();
+        setFormVisible(false);
+        actionProcessedRef.current = false;
         navigate(`/datasets/${datasetId}`);
       }
       return datasetId;
@@ -74,6 +91,9 @@ const DatasetManager: React.FC = () => {
       const success = await api.updateDataset(formDatasetId!, data);
       if (success) {
         api.fetchDatasets();
+        setFormVisible(false);
+        actionProcessedRef.current = false;
+        navigate(`/datasets/${formDatasetId!}`);
       }
       return success ? formDatasetId! : null;
     }
@@ -87,6 +107,7 @@ const DatasetManager: React.FC = () => {
   }, [api]);
 
   const handleManage = useCallback((datasetId: string) => {
+    actionProcessedRef.current = false;
     navigate(`/datasets/${datasetId}`);
   }, [navigate]);
 
@@ -96,9 +117,10 @@ const DatasetManager: React.FC = () => {
 
   const handleDetailEdit = useCallback(() => {
     if (id) {
-      handleOpenEditForm(id);
+      actionProcessedRef.current = false;
+      navigate(`/datasets/${id}/edit`);
     }
-  }, [id, handleOpenEditForm]);
+  }, [id, navigate]);
 
   // 未登录状态
   if (!authChecked) {
@@ -108,9 +130,9 @@ const DatasetManager: React.FC = () => {
   const auth = getAuth();
   if (!auth || !auth.pat) {
     return (
-      <div style={styles.containerStyles.botManagerContainer}>
+      <div style={styles.containerStyles}>
         <Result
-          icon={<OfflineOutlined style={{ color: '#8c8c8c' }} />}
+          icon={<LoginOutlined style={{ color: '#8c8c8c' }} />}
           title="请先登录"
           subTitle="您需要先登录才能使用知识库管理功能"
           extra={
@@ -124,7 +146,7 @@ const DatasetManager: React.FC = () => {
   }
 
   // 知识库详情页
-  if (id && action !== 'create' && action !== 'edit') {
+  if (id && action !== 'create') {
     return (
       <>
         <DatasetDetail
@@ -136,6 +158,7 @@ const DatasetManager: React.FC = () => {
           <DatasetForm
             mode={formMode}
             datasetId={formDatasetId}
+            initialValues={formMode === 'edit' ? api.datasets.find(d => d.dataset_id === id) : undefined}
             onSubmit={handleFormSubmit}
             onCancel={handleCloseForm}
             uploadFile={api.uploadFile}
@@ -151,7 +174,15 @@ const DatasetManager: React.FC = () => {
       <DatasetList
         datasets={api.datasets}
         loading={api.loading}
-        onEdit={handleOpenEditForm}
+        onEdit={(datasetId) => {
+          if (datasetId) {
+            actionProcessedRef.current = false;
+            navigate(`/datasets/${datasetId}/edit`);
+          } else {
+            actionProcessedRef.current = false;
+            navigate('/datasets/create');
+          }
+        }}
         onDelete={handleDelete}
         onManage={handleManage}
       />
