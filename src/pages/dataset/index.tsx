@@ -21,7 +21,7 @@ import styles from './styles';
 const DetailPageWrapper: React.FC<{
   api: ReturnType<typeof useDatasetApi>;
   onBack: () => void;
-  onEdit: () => void;
+  onEdit: (datasetId?: string) => void;
   formVisible: boolean;
   formMode: 'create' | 'edit';
   formDatasetId?: string;
@@ -42,13 +42,13 @@ const DetailPageWrapper: React.FC<{
         datasetId={id}
         dataset={dataset}
         onBack={onBack}
-        onEdit={onEdit}
+        onEdit={() => onEdit(id)}
       />
       {formVisible && (
         <DatasetForm
           mode={formMode}
           datasetId={formDatasetId}
-          initialValues={formMode === 'edit' ? api.datasets.find(d => d.dataset_id === formDatasetId) : undefined}
+          initialValues={formMode === 'edit' && formDatasetId ? api.datasets.find(d => d.dataset_id === formDatasetId) : undefined}
           onSubmit={onFormSubmit}
           onCancel={onFormCancel}
           uploadFile={api.uploadFile}
@@ -134,9 +134,10 @@ const DatasetManager = () => {
   }, []);
 
   // 详情页 - 编辑
-  const handleDetailEdit = useCallback(() => {
+  const handleDetailEdit = useCallback((datasetId?: string) => {
     setFormVisible(true);
     setFormMode('edit');
+    setFormDatasetId(datasetId);
   }, []);
 
   // 详情页 - 返回

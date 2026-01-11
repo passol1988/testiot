@@ -210,7 +210,7 @@ const FileList: React.FC<FileListProps> = ({
     <div>
       {/* 操作栏 */}
       <div style={{ marginBottom: 16 }}>
-        <Space>
+        <Space wrap>
           <Button
             type="primary"
             icon={<UploadOutlined />}
