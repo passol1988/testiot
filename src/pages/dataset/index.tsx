@@ -3,8 +3,8 @@
  * 主入口组件
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { Result, Button } from 'antd';
 import { LoginOutlined } from '@ant-design/icons';
 import DatasetList from './components/DatasetList';
@@ -16,47 +16,56 @@ import type { DatasetFormData } from './types';
 import styles from './styles';
 
 /**
+ * 详情页包装器 - 提取 useParams
+ */
+const DetailPageWrapper: React.FC<{
+  api: ReturnType<typeof useDatasetApi>;
+  onBack: () => void;
+  onEdit: () => void;
+  formVisible: boolean;
+  formMode: 'create' | 'edit';
+  formDatasetId?: string;
+  onFormSubmit: (data: DatasetFormData) => Promise<string | null>;
+  onFormCancel: () => void;
+}> = ({ api, onBack, onEdit, formVisible, formMode, formDatasetId, onFormSubmit, onFormCancel }) => {
+  const { id } = useParams<{ id: string }>();
+
+  if (!id) {
+    return null;
+  }
+
+  return (
+    <>
+      <DatasetDetail
+        datasetId={id}
+        onBack={onBack}
+        onEdit={onEdit}
+      />
+      {formVisible && (
+        <DatasetForm
+          mode={formMode}
+          datasetId={formDatasetId}
+          initialValues={formMode === 'edit' ? api.datasets.find(d => d.dataset_id === formDatasetId) : undefined}
+          onSubmit={onFormSubmit}
+          onCancel={onFormCancel}
+          uploadFile={api.uploadFile}
+        />
+      )}
+    </>
+  );
+};
+
+/**
  * 主页面组件
  */
-const DatasetManager: React.FC = () => {
+const DatasetManager = () => {
   const navigate = useNavigate();
-  const { id, action } = useParams();
   const api = useDatasetApi();
 
   const [formVisible, setFormVisible] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [formDatasetId, setFormDatasetId] = useState<string>();
   const [authChecked, setAuthChecked] = useState(false);
-  const actionProcessedRef = useRef(false);
-
-  // Define handlers BEFORE useEffect that uses them
-  const openCreateForm = useCallback(() => {
-    setFormMode('create');
-    setFormDatasetId(undefined);
-    setFormVisible(true);
-  }, []);
-
-  const openEditForm = useCallback((datasetId: string) => {
-    setFormMode('edit');
-    setFormDatasetId(datasetId);
-    setFormVisible(true);
-  }, []);
-
-  // Handle action-based routing
-  useEffect(() => {
-    // Only process action if it's not already being processed
-    if (action === 'create' && !formVisible && !actionProcessedRef.current) {
-      actionProcessedRef.current = true;
-      openCreateForm();
-    } else if (action === 'edit' && id && !formVisible && !actionProcessedRef.current) {
-      actionProcessedRef.current = true;
-      openEditForm(id);
-    }
-    // Reset the flag when action changes
-    if (!action) {
-      actionProcessedRef.current = false;
-    }
-  }, [action, id, formVisible, openCreateForm, openEditForm]);
 
   useEffect(() => {
     const auth = getAuth();
@@ -68,24 +77,20 @@ const DatasetManager: React.FC = () => {
     api.fetchDatasets();
   }, []);
 
+  // 关闭表单
   const handleCloseForm = useCallback(() => {
     setFormVisible(false);
     setFormDatasetId(undefined);
-    // Navigate to clean URL
-    if (id) {
-      navigate(`/datasets/${id}`);
-    } else {
-      navigate('/datasets');
-    }
-  }, [navigate, id]);
+    navigate('/datasets');
+  }, [navigate]);
 
+  // 提交表单
   const handleFormSubmit = useCallback(async (data: DatasetFormData): Promise<string | null> => {
     if (formMode === 'create') {
       const datasetId = await api.createDataset(data);
       if (datasetId) {
         api.fetchDatasets();
         setFormVisible(false);
-        actionProcessedRef.current = false;
         navigate(`/datasets/${datasetId}`);
       }
       return datasetId;
@@ -94,13 +99,13 @@ const DatasetManager: React.FC = () => {
       if (success) {
         api.fetchDatasets();
         setFormVisible(false);
-        actionProcessedRef.current = false;
         navigate(`/datasets/${formDatasetId!}`);
       }
       return success ? formDatasetId! : null;
     }
   }, [formMode, formDatasetId, api, navigate]);
 
+  // 删除知识库
   const handleDelete = useCallback(async (dataset: typeof api.datasets[0]) => {
     const success = await api.deleteDataset(dataset.dataset_id);
     if (success) {
@@ -108,30 +113,32 @@ const DatasetManager: React.FC = () => {
     }
   }, [api]);
 
+  // 管理知识库（跳转到详情页）
   const handleManage = useCallback((datasetId: string) => {
-    actionProcessedRef.current = false;
     navigate(`/datasets/${datasetId}`);
   }, [navigate]);
 
+  // 列表页 - 新建/编辑
+  const handleListEdit = useCallback((datasetId?: string) => {
+    setFormVisible(true);
+    if (datasetId) {
+      setFormMode('edit');
+      setFormDatasetId(datasetId);
+    } else {
+      setFormMode('create');
+      setFormDatasetId(undefined);
+    }
+  }, []);
+
+  // 详情页 - 编辑
+  const handleDetailEdit = useCallback(() => {
+    setFormVisible(true);
+    setFormMode('edit');
+  }, []);
+
+  // 详情页 - 返回
   const handleDetailBack = useCallback(() => {
     navigate('/datasets');
-  }, [navigate]);
-
-  const handleDetailEdit = useCallback(() => {
-    if (id) {
-      actionProcessedRef.current = false;
-      navigate(`/datasets/${id}/edit`);
-    }
-  }, [id, navigate]);
-
-  // Handlers for list page
-  const handleListEdit = useCallback((datasetId?: string) => {
-    actionProcessedRef.current = false;
-    if (datasetId) {
-      navigate(`/datasets/${datasetId}/edit`);
-    } else {
-      navigate('/datasets/create');
-    }
   }, [navigate]);
 
   // 未登录状态
@@ -157,48 +164,52 @@ const DatasetManager: React.FC = () => {
     );
   }
 
-  // 知识库详情页
-  if (id && action !== 'create') {
-    return (
-      <>
-        <DatasetDetail
-          datasetId={id}
-          onBack={handleDetailBack}
-          onEdit={handleDetailEdit}
-        />
-        {formVisible && (
-          <DatasetForm
-            mode={formMode}
-            datasetId={formDatasetId}
-            initialValues={formMode === 'edit' ? api.datasets.find(d => d.dataset_id === id) : undefined}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCloseForm}
-            uploadFile={api.uploadFile}
-          />
-        )}
-      </>
-    );
-  }
-
-  // 知识库列表页
   return (
     <>
-      <DatasetList
-        datasets={api.datasets}
-        loading={api.loading}
-        onEdit={handleListEdit}
-        onDelete={handleDelete}
-        onManage={handleManage}
-      />
-      {formVisible && (
-        <DatasetForm
-          mode={formMode}
-          datasetId={formDatasetId}
-          onSubmit={handleFormSubmit}
-          onCancel={handleCloseForm}
-          uploadFile={api.uploadFile}
+      {/* 路由配置 */}
+      <Routes>
+        {/* 列表页 */}
+        <Route
+          path="/"
+          element={
+            <>
+              <DatasetList
+                datasets={api.datasets}
+                loading={api.loading}
+                onEdit={handleListEdit}
+                onDelete={handleDelete}
+                onManage={handleManage}
+              />
+              {formVisible && (
+                <DatasetForm
+                  mode={formMode}
+                  datasetId={formDatasetId}
+                  onSubmit={handleFormSubmit}
+                  onCancel={handleCloseForm}
+                  uploadFile={api.uploadFile}
+                />
+              )}
+            </>
+          }
         />
-      )}
+
+        {/* 详情页 */}
+        <Route
+          path=":id"
+          element={
+            <DetailPageWrapper
+              api={api}
+              onBack={handleDetailBack}
+              onEdit={handleDetailEdit}
+              formVisible={formVisible}
+              formMode={formMode}
+              formDatasetId={formDatasetId}
+              onFormSubmit={handleFormSubmit}
+              onFormCancel={handleCloseForm}
+            />
+          }
+        />
+      </Routes>
     </>
   );
 };
