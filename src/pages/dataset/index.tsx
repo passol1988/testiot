@@ -29,6 +29,35 @@ const DatasetManager: React.FC = () => {
   const [authChecked, setAuthChecked] = useState(false);
   const actionProcessedRef = useRef(false);
 
+  // Define handlers BEFORE useEffect that uses them
+  const openCreateForm = useCallback(() => {
+    setFormMode('create');
+    setFormDatasetId(undefined);
+    setFormVisible(true);
+  }, []);
+
+  const openEditForm = useCallback((datasetId: string) => {
+    setFormMode('edit');
+    setFormDatasetId(datasetId);
+    setFormVisible(true);
+  }, []);
+
+  // Handle action-based routing
+  useEffect(() => {
+    // Only process action if it's not already being processed
+    if (action === 'create' && !formVisible && !actionProcessedRef.current) {
+      actionProcessedRef.current = true;
+      openCreateForm();
+    } else if (action === 'edit' && id && !formVisible && !actionProcessedRef.current) {
+      actionProcessedRef.current = true;
+      openEditForm(id);
+    }
+    // Reset the flag when action changes
+    if (!action) {
+      actionProcessedRef.current = false;
+    }
+  }, [action, id, formVisible, openCreateForm, openEditForm]);
+
   useEffect(() => {
     const auth = getAuth();
     if (!auth || !auth.pat) {
@@ -37,33 +66,6 @@ const DatasetManager: React.FC = () => {
     }
     setAuthChecked(true);
     api.fetchDatasets();
-  }, []);
-
-  useEffect(() => {
-    // Only process action if it's not already being processed
-    if (action === 'create' && !formVisible && !actionProcessedRef.current) {
-      actionProcessedRef.current = true;
-      handleOpenCreateForm();
-    } else if (action === 'edit' && id && !formVisible && !actionProcessedRef.current) {
-      actionProcessedRef.current = true;
-      handleOpenEditForm(id);
-    }
-    // Reset the flag when action changes
-    if (!action) {
-      actionProcessedRef.current = false;
-    }
-  }, [action, id, formVisible]);
-
-  const handleOpenCreateForm = useCallback(() => {
-    setFormMode('create');
-    setFormDatasetId(undefined);
-    setFormVisible(true);
-  }, []);
-
-  const handleOpenEditForm = useCallback((datasetId: string) => {
-    setFormMode('edit');
-    setFormDatasetId(datasetId);
-    setFormVisible(true);
   }, []);
 
   const handleCloseForm = useCallback(() => {
@@ -122,6 +124,16 @@ const DatasetManager: React.FC = () => {
     }
   }, [id, navigate]);
 
+  // Handlers for list page
+  const handleListEdit = useCallback((datasetId?: string) => {
+    actionProcessedRef.current = false;
+    if (datasetId) {
+      navigate(`/datasets/${datasetId}/edit`);
+    } else {
+      navigate('/datasets/create');
+    }
+  }, [navigate]);
+
   // 未登录状态
   if (!authChecked) {
     return null;
@@ -174,15 +186,7 @@ const DatasetManager: React.FC = () => {
       <DatasetList
         datasets={api.datasets}
         loading={api.loading}
-        onEdit={(datasetId) => {
-          if (datasetId) {
-            actionProcessedRef.current = false;
-            navigate(`/datasets/${datasetId}/edit`);
-          } else {
-            actionProcessedRef.current = false;
-            navigate('/datasets/create');
-          }
-        }}
+        onEdit={handleListEdit}
         onDelete={handleDelete}
         onManage={handleManage}
       />
