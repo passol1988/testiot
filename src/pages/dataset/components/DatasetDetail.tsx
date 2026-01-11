@@ -1,0 +1,263 @@
+/**
+ * DatasetDetail 组件
+ * 知识库详情页
+ */
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button, Tabs, Space, Descriptions, Tag, message, Modal } from 'antd';
+import {
+  ArrowLeftOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  FileTextOutlined,
+  PictureOutlined,
+} from '@ant-design/icons';
+import type { DatasetDetailProps } from '../types';
+import { DatasetFormatType, DatasetInfo } from '../types';
+import { DATASET_TYPE_MAP } from '../utils/constants';
+import FileList from './FileList';
+import ImageGrid from './ImageGrid';
+import FileUploadModal from './FileUploadModal';
+import UploadProgressModal from './UploadProgressModal';
+import styles from '../styles';
+
+const { TabPane } = Tabs;
+
+const DatasetDetail: React.FC<DatasetDetailProps> = ({
+  datasetId,
+  onBack,
+  onEdit,
+}) => {
+  const navigate = useNavigate();
+  const [dataset, setDataset] = useState<DatasetInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [formatType, setFormatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
+  const [captionType, setCaptionType] = useState<0 | 1>(0);
+  const [progressData, setProgressData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchDatasetDetail();
+  }, [datasetId]);
+
+  const fetchDatasetDetail = async () => {
+    setLoading(true);
+    try {
+      // 这里需要调用 API 获取知识库详情
+      // const api = useDatasetApi();
+      // const detail = await api.getDatasetDetail(datasetId);
+      setDataset(null);
+    } catch (error) {
+      message.error('获取知识库详情失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = () => {
+    Modal.confirm({
+      title: '确认删除知识库',
+      content: (
+        <div>
+          <p>确定删除知识库 <strong>{dataset?.name}</strong> 吗？</p>
+          <p style={{ color: '#ff4d4f' }}>
+            此操作将删除知识库及其所有文件，且无法撤销。
+          </p>
+        </div>
+      ),
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          // await api.deleteDataset(datasetId);
+          message.success('知识库删除成功');
+          navigate('/datasets');
+        } catch (error) {
+          message.error('知识库删除失败');
+        }
+      },
+    });
+  };
+
+  const handleUploadSuccess = () => {
+    setUploadModalVisible(false);
+    // 刷新数据
+    fetchDatasetDetail();
+    // 刷新文件列表/图片列表
+  };
+
+  const formatTime = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN');
+  };
+
+  const formatBytes = (bytes: string): string => {
+    const num = parseInt(bytes, 10);
+    if (isNaN(num)) return '0 B';
+    if (num === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(num) / Math.log(k));
+    return Math.round(num / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  if (loading) {
+    return (
+      <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
+        <div style={{ textAlign: 'center', padding: 100 }}>
+          加载中...
+        </div>
+      </div>
+    );
+  }
+
+  if (!dataset) {
+    return (
+      <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
+        <div style={{ textAlign: 'center', padding: 100 }}>
+          知识库不存在
+        </div>
+      </div>
+    );
+  }
+
+  const isImageType = dataset.format_type === DatasetFormatType.IMAGE;
+
+  return (
+    <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
+      {/* 头部 */}
+      <div
+        style={{
+          padding: '16px 24px',
+          borderBottom: '1px solid #f0f0f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Space>
+          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
+            返回列表
+          </Button>
+          <span
+            style={{
+              fontSize: 18,
+              fontWeight: 600,
+            }}
+          >
+            {dataset.name}
+          </span>
+          <Tag color="blue">{DATASET_TYPE_MAP[dataset.format_type]}</Tag>
+        </Space>
+        <Space>
+          {dataset.can_edit && (
+            <Button icon={<EditOutlined />} onClick={onEdit}>
+              编辑
+            </Button>
+          )}
+          <Button danger icon={<DeleteOutlined />} onClick={handleDelete}>
+            删除
+          </Button>
+        </Space>
+      </div>
+
+      {/* 基本信息 */}
+      <div style={{ padding: '24px' }}>
+        <Descriptions title="基本信息" bordered column={2}>
+          <Descriptions.Item label="知识库ID">{dataset.dataset_id}</Descriptions.Item>
+          <Descriptions.Item label="空间ID">{dataset.space_id}</Descriptions.Item>
+          <Descriptions.Item label="描述" span={2}>
+            {dataset.description || '暂无描述'}
+          </Descriptions.Item>
+          <Descriptions.Item label="文档数量">{dataset.doc_count}</Descriptions.Item>
+          <Descriptions.Item label="分段数量">{dataset.slice_count}</Descriptions.Item>
+          <Descriptions.Item label="命中次数">{dataset.hit_count}</Descriptions.Item>
+          <Descriptions.Item label="使用次数">{dataset.bot_used_count}</Descriptions.Item>
+          <Descriptions.Item label="总大小">{formatBytes(dataset.all_file_size)}</Descriptions.Item>
+          <Descriptions.Item label="创建时间">{formatTime(dataset.create_time)}</Descriptions.Item>
+          <Descriptions.Item label="更新时间">{formatTime(dataset.update_time)}</Descriptions.Item>
+          <Descriptions.Item label="创建者">{dataset.creator_name}</Descriptions.Item>
+          <Descriptions.Item label="状态">
+            <Tag color={dataset.status === 1 ? 'success' : 'default'}>
+              {dataset.status === 1 ? '已启用' : '未启用'}
+            </Tag>
+          </Descriptions.Item>
+        </Descriptions>
+      </div>
+
+      {/* Tab 内容 */}
+      <Tabs
+        defaultActiveKey="files"
+        tabBarStyle={{
+          padding: '0 24px',
+          marginBottom: 0,
+          background: 'white',
+          borderRadius: '16px 16px 0 0',
+        }}
+      >
+        <TabPane
+          tab={isImageType ? (
+            <span>
+              <PictureOutlined /> 图片管理
+            </span>
+          ) : (
+            <span>
+              <FileTextOutlined /> 文件管理
+            </span>
+          )}
+          key="files"
+        >
+          <div className="dataset-detail-content">
+            {isImageType ? (
+              <ImageGrid
+                datasetId={datasetId}
+                captionType={captionType}
+                onUpload={() => setUploadModalVisible(true)}
+                onRefresh={fetchDatasetDetail}
+                onUpdateCaption={async (documentId, caption) => {
+                  try {
+                    // await api.updateImageCaption(documentId, caption);
+                    message.success('图片描述更新成功');
+                    return true;
+                  } catch (error) {
+                    message.error('图片描述更新失败');
+                    return false;
+                  }
+                }}
+              />
+            ) : (
+              <FileList
+                datasetId={datasetId}
+                formatType={dataset.format_type}
+                onUpload={() => setUploadModalVisible(true)}
+                onRefresh={fetchDatasetDetail}
+              />
+            )}
+          </div>
+        </TabPane>
+      </Tabs>
+
+      {/* 上传弹窗 */}
+      {uploadModalVisible && (
+        <FileUploadModal
+          visible={uploadModalVisible}
+          datasetId={datasetId}
+          formatType={formatType}
+          captionType={captionType}
+          onClose={() => setUploadModalVisible(false)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* 进度弹窗 */}
+      <UploadProgressModal
+        visible={progressData.length > 0}
+        progressData={progressData}
+      />
+    </div>
+  );
+};
+
+export default DatasetDetail;
