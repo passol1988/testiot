@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { LoginModal, PageHeader, BotList, KnowledgeFab } from './components';
+import { LoginModal, PageHeader, BotList } from './components';
 import { useBotApi } from './hooks';
 import { isLoggedIn, clearAuth } from './utils/storage';
 import type { BotFormData } from './types';
@@ -130,8 +130,6 @@ const BotManager = () => {
         onCall={handleCall}
         onPublish={handlePublish}
       />
-
-      <KnowledgeFab />
     </div>
   );
 

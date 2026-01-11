@@ -5,7 +5,8 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Button, Space, Modal, Form, Input, message } from 'antd';
-import { PlusOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, SettingOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { getAuth, setAuth, clearAuth } from '../utils/storage';
 
 interface PageHeaderProps {
@@ -15,6 +16,7 @@ interface PageHeaderProps {
 }
 
 const PageHeader = ({ onCreate, onRefresh, loading }: PageHeaderProps) => {
+  const navigate = useNavigate();
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [form] = Form.useForm();
 
@@ -87,6 +89,12 @@ const PageHeader = ({ onCreate, onRefresh, loading }: PageHeaderProps) => {
         </div>
 
         <Space>
+          <Button
+            icon={<DatabaseOutlined />}
+            onClick={() => navigate('/datasets')}
+          >
+            知识库管理
+          </Button>
           <Button
             icon={<SettingOutlined />}
             onClick={handleOpenSettings}
