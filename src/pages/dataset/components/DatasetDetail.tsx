@@ -3,8 +3,8 @@
  * 知识库详情页
  */
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Tabs, Space, Descriptions, Tag, message, Modal } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -14,7 +14,7 @@ import {
   PictureOutlined,
 } from '@ant-design/icons';
 import type { DatasetDetailProps } from '../types';
-import { DatasetFormatType, DatasetInfo } from '../types';
+import { DatasetFormatType } from '../types';
 import { DATASET_TYPE_MAP } from '../utils/constants';
 import FileList from './FileList';
 import ImageGrid from './ImageGrid';
@@ -22,38 +22,19 @@ import FileUploadModal from './FileUploadModal';
 import UploadProgressModal from './UploadProgressModal';
 import styles from '../styles';
 
-const { TabPane } = Tabs;
-
 const DatasetDetail: React.FC<DatasetDetailProps> = ({
   datasetId,
+  dataset: propDataset,
   onBack,
   onEdit,
 }) => {
   const navigate = useNavigate();
-  const [dataset, setDataset] = useState<DatasetInfo | null>(null);
-  const [loading, setLoading] = useState(false);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [formatType, setFormatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
-  const [captionType, setCaptionType] = useState<0 | 1>(0);
-  const [progressData, setProgressData] = useState<any[]>([]);
+  const [formatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
+  const [captionType] = useState<0 | 1>(0);
+  const [progressData] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchDatasetDetail();
-  }, [datasetId]);
-
-  const fetchDatasetDetail = async () => {
-    setLoading(true);
-    try {
-      // 这里需要调用 API 获取知识库详情
-      // const api = useDatasetApi();
-      // const detail = await api.getDatasetDetail(datasetId);
-      setDataset(null);
-    } catch (error) {
-      message.error('获取知识库详情失败');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const dataset = propDataset;
 
   const handleDelete = () => {
     Modal.confirm({
@@ -83,9 +64,11 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
 
   const handleUploadSuccess = () => {
     setUploadModalVisible(false);
-    // 刷新数据
-    fetchDatasetDetail();
-    // 刷新文件列表/图片列表
+    // 父组件会刷新数据
+  };
+
+  const handleRefresh = () => {
+    // 父组件会刷新数据
   };
 
   const formatTime = (timestamp: number): string => {
@@ -103,19 +86,9 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
     return Math.round(num / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  if (loading) {
-    return (
-      <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
-        <div style={{ textAlign: 'center', padding: 100 }}>
-          加载中...
-        </div>
-      </div>
-    );
-  }
-
   if (!dataset) {
     return (
-      <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
+      <div className="dataset-detail" style={styles.containerStyles}>
         <div style={{ textAlign: 'center', padding: 100 }}>
           知识库不存在
         </div>
@@ -126,7 +99,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
   const isImageType = dataset.format_type === DatasetFormatType.IMAGE;
 
   return (
-    <div className="dataset-detail" style={styles.containerStyles.botManagerContainer}>
+    <div className="dataset-detail" style={styles.containerStyles}>
       {/* 头部 */}
       <div
         style={{
@@ -175,7 +148,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
           <Descriptions.Item label="分段数量">{dataset.slice_count}</Descriptions.Item>
           <Descriptions.Item label="命中次数">{dataset.hit_count}</Descriptions.Item>
           <Descriptions.Item label="使用次数">{dataset.bot_used_count}</Descriptions.Item>
-          <Descriptions.Item label="总大小">{formatBytes(dataset.all_file_size)}</Descriptions.Item>
+          <Descriptions.Item label="总大小">{formatBytes(String(dataset.all_file_size))}</Descriptions.Item>
           <Descriptions.Item label="创建时间">{formatTime(dataset.create_time)}</Descriptions.Item>
           <Descriptions.Item label="更新时间">{formatTime(dataset.update_time)}</Descriptions.Item>
           <Descriptions.Item label="创建者">{dataset.creator_name}</Descriptions.Item>
@@ -196,48 +169,50 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
           background: 'white',
           borderRadius: '16px 16px 0 0',
         }}
-      >
-        <TabPane
-          tab={isImageType ? (
-            <span>
-              <PictureOutlined /> 图片管理
-            </span>
-          ) : (
-            <span>
-              <FileTextOutlined /> 文件管理
-            </span>
-          )}
-          key="files"
-        >
-          <div className="dataset-detail-content">
-            {isImageType ? (
-              <ImageGrid
-                datasetId={datasetId}
-                captionType={captionType}
-                onUpload={() => setUploadModalVisible(true)}
-                onRefresh={fetchDatasetDetail}
-                onUpdateCaption={async (documentId, caption) => {
-                  try {
-                    // await api.updateImageCaption(documentId, caption);
-                    message.success('图片描述更新成功');
-                    return true;
-                  } catch (error) {
-                    message.error('图片描述更新失败');
-                    return false;
-                  }
-                }}
-              />
+        items={[
+          {
+            key: 'files',
+            label: isImageType ? (
+              <span>
+                <PictureOutlined /> 图片管理
+              </span>
             ) : (
-              <FileList
-                datasetId={datasetId}
-                formatType={dataset.format_type}
-                onUpload={() => setUploadModalVisible(true)}
-                onRefresh={fetchDatasetDetail}
-              />
-            )}
-          </div>
-        </TabPane>
-      </Tabs>
+              <span>
+                <FileTextOutlined /> 文件管理
+              </span>
+            ),
+            children: (
+              <div className="dataset-detail-content">
+                {isImageType ? (
+                  <ImageGrid
+                    datasetId={datasetId}
+                    captionType={captionType}
+                    onUpload={() => setUploadModalVisible(true)}
+                    onRefresh={handleRefresh}
+                    onUpdateCaption={async (_documentId, _caption) => {
+                      try {
+                        // await api.updateImageCaption(documentId, caption);
+                        message.success('图片描述更新成功');
+                        return true;
+                      } catch (error) {
+                        message.error('图片描述更新失败');
+                        return false;
+                      }
+                    }}
+                  />
+                ) : (
+                  <FileList
+                    datasetId={datasetId}
+                    formatType={dataset.format_type}
+                    onUpload={() => setUploadModalVisible(true)}
+                    onRefresh={handleRefresh}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* 上传弹窗 */}
       {uploadModalVisible && (

@@ -49,7 +49,7 @@ export interface DatasetInfo {
   slice_count: number;        // 分段数量
   hit_count: number;          // 命中次数
   bot_used_count: number;     // 使用该知识库的智能体数量
-  all_file_size: string;      // 总文件大小
+  all_file_size: number;      // 总文件大小
   create_time: number;        // Unix 时间戳（秒）
   update_time: number;        // Unix 时间戳（秒）
   creator_id: string;
@@ -113,8 +113,8 @@ export interface SourceInfo {
  * 更新规则（在线网页）
  */
 export interface UpdateRule {
-  update_type?: 0 | 1;   // 0-不自动更新，1-自动更新
-  update_interval?: number;  // 更新频率（小时），最小 24
+  update_type: 0 | 1;   // 0-不自动更新，1-自动更新
+  update_interval: number;  // 更新频率（小时），最小 24
 }
 
 /**
@@ -247,6 +247,7 @@ export interface DatasetFormProps {
  */
 export interface DatasetDetailProps {
   datasetId: string;
+  dataset?: DatasetInfo | null;
   onBack: () => void;
   onEdit: () => void;
 }

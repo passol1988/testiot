@@ -34,10 +34,13 @@ const DetailPageWrapper: React.FC<{
     return null;
   }
 
+  const dataset = api.datasets.find(d => d.dataset_id === id);
+
   return (
     <>
       <DatasetDetail
         datasetId={id}
+        dataset={dataset}
         onBack={onBack}
         onEdit={onEdit}
       />
