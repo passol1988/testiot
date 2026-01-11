@@ -15,6 +15,7 @@ import {
   Input,
   Select,
   Checkbox,
+  Form,
   message,
 } from 'antd';
 import {
@@ -24,6 +25,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { FileListProps } from '../types';
@@ -39,6 +41,9 @@ const FileList: React.FC<FileListProps> = ({
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState<DocumentInfo | null>(null);
+  const [editForm] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: PAGINATION_CONFIG.defaultPageSize,
@@ -133,6 +138,36 @@ const FileList: React.FC<FileListProps> = ({
     });
   };
 
+  const handleEdit = (document: DocumentInfo) => {
+    setCurrentDocument(document);
+    editForm.setFieldsValue({
+      document_name: document.name,
+      update_type: document.update_type,
+      update_interval: document.update_interval,
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      // await updateDocument(currentDocument.document_id, {
+      //   document_name: values.document_name,
+      //   update_rule: {
+      //     update_type: values.update_type,
+      //     update_interval: values.update_interval,
+      //   },
+      // });
+      message.success('文件更新成功');
+      setEditModalVisible(false);
+      setCurrentDocument(null);
+      fetchDocuments();
+      onRefresh?.();
+    } catch (error) {
+      message.error('文件更新失败');
+    }
+  };
+
   const columns: ColumnsType<DocumentInfo> = [
     {
       title: '',
@@ -193,15 +228,24 @@ const FileList: React.FC<FileListProps> = ({
     {
       title: '操作',
       key: 'action',
-      width: 80,
+      width: 150,
       render: (_, record) => (
-        <Button
-          size="small"
-          danger
-          onClick={() => handleDelete([record.document_id])}
-        >
-          删除
-        </Button>
+        <Space size="small">
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+          <Button
+            size="small"
+            danger
+            onClick={() => handleDelete([record.document_id])}
+          >
+            删除
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -258,6 +302,67 @@ const FileList: React.FC<FileListProps> = ({
           />
         </div>
       )}
+
+      {/* 编辑文件弹窗 */}
+      <Modal
+        title="编辑文件"
+        open={editModalVisible}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setCurrentDocument(null);
+          editForm.resetFields();
+        }}
+        onOk={handleEditSubmit}
+        okText="保存"
+        cancelText="取消"
+        width={500}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          initialValues={{
+            update_type: 0,
+            update_interval: 24,
+          }}
+        >
+          <Form.Item
+            label="文件名"
+            name="document_name"
+            rules={[{ required: true, message: '请输入文件名' }]}
+          >
+            <Input placeholder="请输入文件名" maxLength={100} />
+          </Form.Item>
+
+          <Form.Item label="自动更新">
+            <Form.Item name="update_type" noStyle>
+              <Select>
+                <Select.Option value={0}>不自动更新</Select.Option>
+                <Select.Option value={1}>自动更新</Select.Option>
+              </Select>
+            </Form.Item>
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.update_type !== currentValues.update_type}
+          >
+            {({ getFieldValue }) =>
+              getFieldValue('update_type') === 1 ? (
+                <Form.Item
+                  label="更新频率（小时）"
+                  name="update_interval"
+                  rules={[
+                    { required: true, message: '请输入更新频率' },
+                    { type: 'number', min: 24, message: '更新频率最小为 24 小时' },
+                  ]}
+                >
+                  <Input type="number" placeholder="24" min={24} />
+                </Form.Item>
+              ) : null
+            }
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

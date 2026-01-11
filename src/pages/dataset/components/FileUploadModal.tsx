@@ -52,14 +52,10 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
     }
 
     if (isImageType) {
-      await uploadImages(datasetId, selectedFiles, captionType ?? 0, [caption]);
+      await uploadImages(datasetId, selectedFiles, captionType ?? 0, [caption], onSuccess);
     } else {
-      await uploadDocuments(datasetId, selectedFiles, formatType);
+      await uploadDocuments(datasetId, selectedFiles, formatType, onSuccess);
     }
-
-    setSelectedFiles([]);
-    setCaption('');
-    onSuccess?.();
   };
 
   const handleUploadWebPage = async () => {
@@ -79,10 +75,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
       return;
     }
 
-    await uploadWebPage(datasetId, webUrl, documentName);
-    setWebUrl('');
-    setDocumentName('');
-    onSuccess?.();
+    await uploadWebPage(datasetId, webUrl, documentName, onSuccess);
   };
 
   const beforeUpload = (file: File) => {

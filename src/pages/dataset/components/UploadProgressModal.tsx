@@ -27,6 +27,7 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
       closable={false}
       maskClosable={false}
       width={600}
+      zIndex={1050}
     >
       <List
         dataSource={progressData}
