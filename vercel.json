@@ -1,0 +1,22 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/coze/open_api/:match*",
+      "destination": "https://api.coze.cn/open_api/:match*"
+    },
+    {
+      "source": "/api/coze/v1/:match*",
+      "destination": "https://api.coze.cn/v1/:match*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/coze/:match*",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Authorization,Content-Type,Agw-Js-Conv,X-Coze-Client-User-Agent,Referer,User-Agent,DNT" }
+      ]
+    }
+  ]
+}

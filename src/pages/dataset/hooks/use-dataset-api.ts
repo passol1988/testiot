@@ -41,9 +41,8 @@ export const useDatasetApi = () => {
       return null;
     }
 
-    // 在开发环境使用代理避免 CORS 问题
-    const isDev = import.meta.env.DEV;
-    const baseURL = isDev ? '/api/coze' : 'https://api.coze.cn';
+    // 统一使用 /api/coze 代理路径（开发用 Vite，生产用 Vercel rewrites）
+    const baseURL = '/api/coze';
 
     apiRef.current = new CozeAPI({
       baseURL,
