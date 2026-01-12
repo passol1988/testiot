@@ -15,37 +15,10 @@ import type {
   DocumentProgress,
   DatasetFormatType,
   UpdateRule,
-  SourceInfo,
-  DocumentSourceType,
 } from '../types';
-import { DEFAULT_CHUNK_STRATEGY, DEFAULT_UPDATE_RULE } from '../utils/constants';
-import { getAuth } from '../bot-manager/utils/storage';
-import { SPACE_ID } from '../bot-manager/utils/constants';
-
-/**
- * 文件转 Base64
- */
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // 移除 data:type;base64, 前缀
-      const base64 = result.split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
- * 获取文件扩展名
- */
-const getFileExtension = (filename: string): string => {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  return ext || '';
-};
+import { DEFAULT_CHUNK_STRATEGY } from '../utils/constants';
+import { getAuth } from '../../bot-manager/utils/storage';
+import { SPACE_ID } from '../../bot-manager/utils/constants';
 
 /**
  * useDatasetApi Hook
@@ -68,8 +41,12 @@ export const useDatasetApi = () => {
       return null;
     }
 
+    // 在开发环境使用代理避免 CORS 问题
+    const isDev = import.meta.env.DEV;
+    const baseURL = isDev ? '/api/coze' : 'https://api.coze.cn';
+
     apiRef.current = new CozeAPI({
-      baseURL: 'https://api.coze.cn',
+      baseURL,
       token: auth.pat,
       allowPersonalAccessTokenInBrowser: true,
     });
@@ -88,14 +65,13 @@ export const useDatasetApi = () => {
 
     setLoading(true);
     try {
-      // 使用 knowledge API
-      const result = await api.knowledge.dataset.list({
+      const result = await api.datasets.list({
         space_id: SPACE_ID,
         page_num: 1,
         page_size: 100,
       });
 
-      setDatasets(result.data?.dataset_list || []);
+      setDatasets(result.dataset_list || []);
     } catch (error) {
       console.error('Failed to fetch datasets:', error);
       message.error('获取知识库列表失败');
@@ -115,7 +91,7 @@ export const useDatasetApi = () => {
 
     setLoading(true);
     try {
-      const result = await api.knowledge.dataset.create({
+      const result = await api.datasets.create({
         space_id: SPACE_ID,
         name: data.name,
         description: data.description,
@@ -124,7 +100,7 @@ export const useDatasetApi = () => {
       });
 
       message.success('知识库创建成功');
-      return result.data?.dataset_id || null;
+      return result.dataset_id || null;
     } catch (error) {
       console.error('Failed to create dataset:', error);
       message.error(`创建知识库失败：${(error as Error).message}`);
@@ -149,7 +125,6 @@ export const useDatasetApi = () => {
     setLoading(true);
     try {
       const updateParams: any = {
-        dataset_id: datasetId,
         name: data.name,
       };
 
@@ -160,7 +135,7 @@ export const useDatasetApi = () => {
         updateParams.file_id = data.icon_file_id;
       }
 
-      await api.knowledge.dataset.update(updateParams);
+      await api.datasets.update(datasetId, updateParams);
       message.success('知识库更新成功');
       return true;
     } catch (error) {
@@ -183,9 +158,7 @@ export const useDatasetApi = () => {
 
     setLoading(true);
     try {
-      await api.knowledge.dataset.delete({
-        dataset_id: datasetId,
-      });
+      await api.datasets.delete(datasetId);
       message.success('知识库删除成功');
       return true;
     } catch (error) {
@@ -210,10 +183,10 @@ export const useDatasetApi = () => {
     }
 
     try {
-      const result = await api.knowledge.document.list({
+      const result = await api.datasets.documents.list({
         dataset_id: datasetId,
         page,
-        size: 50,
+        page_size: 50,
       });
 
       return result.document_infos || [];
@@ -237,13 +210,12 @@ export const useDatasetApi = () => {
     }
 
     try {
-      const result = await api.knowledge.images.list({
-        dataset_id: datasetId,
+      const result = await api.datasets.images.list(datasetId, {
         page_num: page,
         page_size: 50,
       });
 
-      return result.data?.photo_infos || [];
+      return result.photo_infos || [];
     } catch (error) {
       console.error('Failed to fetch images:', error);
       message.error('获取图片列表失败');
@@ -265,14 +237,14 @@ export const useDatasetApi = () => {
     }
 
     try {
-      const result = await api.knowledge.document.create({
+      const result = await api.datasets.documents.create({
         dataset_id: datasetId,
         document_bases: documentBases,
         chunk_strategy: DEFAULT_CHUNK_STRATEGY,
         format_type: formatType,
       });
 
-      const documentIds = result.document_infos?.map(d => d.document_id) || [];
+      const documentIds = result.map((d: any) => d.document_id) || [];
       return documentIds;
     } catch (error) {
       console.error('Failed to create document:', error);
@@ -294,7 +266,7 @@ export const useDatasetApi = () => {
     }
 
     try {
-      await api.knowledge.document.update({
+      await api.datasets.documents.update({
         document_id: documentId,
         document_name: data.document_name,
         update_rule: data.update_rule,
@@ -318,7 +290,7 @@ export const useDatasetApi = () => {
     }
 
     try {
-      await api.knowledge.document.delete({
+      await api.datasets.documents.delete({
         document_ids: documentIds,
       });
       message.success('文件删除成功');
@@ -343,12 +315,11 @@ export const useDatasetApi = () => {
     }
 
     try {
-      const result = await api.knowledge.document.progress({
-        dataset_id: datasetId,
+      const result = await api.datasets.process(datasetId, {
         document_ids: documentIds,
       });
 
-      return result.data?.data || [];
+      return result.data || [];
     } catch (error) {
       console.error('Failed to fetch document progress:', error);
       return [];
@@ -378,6 +349,7 @@ export const useDatasetApi = () => {
    * 更新图片描述
    */
   const updateImageCaption = useCallback(async (
+    datasetId: string,
     documentId: string,
     caption: string
   ): Promise<boolean> => {
@@ -387,7 +359,7 @@ export const useDatasetApi = () => {
     }
 
     try {
-      await api.knowledge.images.updateCaption(documentId, {
+      await api.datasets.images.update(datasetId, documentId, {
         caption,
       });
       message.success('图片描述更新成功');
