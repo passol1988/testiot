@@ -37,6 +37,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
   const [iconPreview, setIconPreview] = useState<string>('');
   const [iconFileId, setIconFileId] = useState<string>('');
   const [formatType, setFormatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
+  const [existingIconUrl, setExistingIconUrl] = useState<string>('');
 
   useEffect(() => {
     if (initialValues) {
@@ -45,8 +46,12 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
       if (initialValues.icon_file_id) {
         setIconFileId(initialValues.icon_file_id);
       }
+      // Set existing icon URL for editing
+      if (mode === 'edit' && (initialValues.icon_url || initialValues.avatar_url || initialValues.icon_uri)) {
+        setExistingIconUrl(initialValues.icon_url || initialValues.avatar_url || initialValues.icon_uri || '');
+      }
     }
-  }, [initialValues, form]);
+  }, [initialValues, form, mode]);
 
   const handleIconUpload = async (file: File) => {
     if (!uploadFile) {
@@ -86,6 +91,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
         setIconFile(null);
         setIconPreview('');
         setIconFileId('');
+        setExistingIconUrl('');
       }
     } finally {
       setLoading(false);
@@ -121,8 +127,8 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
             accept="image/*"
             style={{ width: 'auto' }}
           >
-            {iconPreview || iconFileId ? (
-              <Avatar size={64} src={iconPreview} />
+            {iconPreview || iconFileId || existingIconUrl ? (
+              <Avatar size={64} src={iconPreview || existingIconUrl} />
             ) : (
               <div>
                 <PlusOutlined />

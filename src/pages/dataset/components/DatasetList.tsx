@@ -5,9 +5,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Input, Select, Button, Empty, Spin, Modal, Space } from 'antd';
-import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, ReloadOutlined, RollbackOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { DatasetListProps } from '../types';
-import { DATASET_TYPE_OPTIONS, PAGINATION_CONFIG } from '../utils/constants';
+import { DATASET_TYPE_OPTIONS } from '../utils/constants';
 import DatasetCard from './DatasetCard';
 import styles from '../styles';
 
@@ -20,6 +21,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
   onDelete,
   onManage,
 }) => {
+  const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState<number | undefined>();
   const [filteredDatasets, setFilteredDatasets] = useState(datasets);
@@ -62,10 +64,22 @@ const DatasetList: React.FC<DatasetListProps> = ({
   };
 
   return (
-    <div className="dataset-list" style={styles.containerStyles.botManagerContainer}>
+    <div className="dataset-list" style={styles.containerStyles}>
       {/* 操作栏 */}
       <div style={{ padding: '24px 24px 16px' }}>
         <Row gutter={16} align="middle">
+          <Col span={24} style={{ marginBottom: 8 }}>
+            <Space>
+              <Button
+                icon={<RollbackOutlined />}
+                onClick={() => navigate('/bot-manager')}
+              >
+                返回智能体管理
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+        <Row gutter={16} align="middle" style={{ marginTop: 8 }}>
           <Col xs={24} sm={12} md={8}>
             <Search
               placeholder="搜索知识库名称或描述"

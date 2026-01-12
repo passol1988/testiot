@@ -188,6 +188,7 @@ const DatasetManager = () => {
                 <DatasetForm
                   mode={formMode}
                   datasetId={formDatasetId}
+                  initialValues={formMode === 'edit' && formDatasetId ? api.datasets.find(d => d.dataset_id === formDatasetId) : undefined}
                   onSubmit={handleFormSubmit}
                   onCancel={handleCloseForm}
                   uploadFile={api.uploadFile}

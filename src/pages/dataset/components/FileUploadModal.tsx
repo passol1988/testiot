@@ -177,7 +177,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
           )}
 
           <Form.Item>
-            <Space>
+            <Space wrap>
               <Button
                 type="primary"
                 onClick={handleUploadLocalFiles}
@@ -229,7 +229,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
           </Form.Item>
 
           <Form.Item>
-            <Space>
+            <Space wrap>
               <Button
                 type="primary"
                 onClick={handleUploadWebPage}
