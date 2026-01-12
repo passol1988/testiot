@@ -5,10 +5,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { LoginModal, PageHeader, BotList, KnowledgeFab } from './components';
+import { LoginModal, PageHeader, BotList } from './components';
 import { useBotApi } from './hooks';
+import { useDatasetApi } from '../dataset/hooks/use-dataset-api';
 import { isLoggedIn, clearAuth } from './utils/storage';
 import type { BotFormData } from './types';
+import type { DatasetInfo } from '../dataset/types';
 import BotForm from './components/BotForm';
 import CallPage from './call';
 import './styles.css';
@@ -23,6 +25,7 @@ const BotManager = () => {
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [botFormMode, setBotFormMode] = useState<'create' | 'edit'>('create');
   const [editBotId, setEditBotId] = useState<string | undefined>();
+  const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
 
   // API Hooks
   const {
@@ -37,6 +40,7 @@ const BotManager = () => {
     fetchVoices,
     fetchPlugins,
   } = useBotApi();
+  const { fetchDatasets } = useDatasetApi();
 
   // 检查登录状态
   useEffect(() => {
@@ -44,14 +48,30 @@ const BotManager = () => {
       setLoginModalVisible(true);
     } else {
       fetchBotList();
+      // 加载知识库列表
+      const loadDatasets = async () => {
+        const data = await fetchDatasets();
+        if (data) {
+          setDatasets(data);
+        }
+      };
+      loadDatasets();
     }
-  }, [fetchBotList]);
+  }, [fetchBotList, fetchDatasets]);
 
   // 处理登录
   const handleLogin = useCallback(() => {
     setLoginModalVisible(false);
     fetchBotList();
-  }, [fetchBotList]);
+    // 加载知识库列表
+    const loadDatasets = async () => {
+      const data = await fetchDatasets();
+      if (data) {
+        setDatasets(data);
+      }
+    };
+    loadDatasets();
+  }, [fetchBotList, fetchDatasets]);
 
   // 处理登出
   const handleLogout = useCallback(() => {
@@ -130,8 +150,6 @@ const BotManager = () => {
         onCall={handleCall}
         onPublish={handlePublish}
       />
-
-      <KnowledgeFab />
     </div>
   );
 
@@ -160,6 +178,7 @@ const BotManager = () => {
               uploadFile={uploadFile}
               fetchVoices={fetchVoices}
               fetchPlugins={fetchPlugins}
+              datasets={datasets}
             />
           }
         />
@@ -175,6 +194,7 @@ const BotManager = () => {
               fetchVoices={fetchVoices}
               fetchPlugins={fetchPlugins}
               fetchBotDetail={fetchBotDetail}
+              datasets={datasets}
             />
           }
         />

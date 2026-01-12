@@ -18,6 +18,7 @@ import {
   GithubOutlined,
   FileTextOutlined,
   PlaySquareOutlined,
+  DatabaseOutlined,
 } from '@ant-design/icons';
 
 import TTSWithTranscription from './pages/tts_transcription';
@@ -28,6 +29,7 @@ import Chat from './pages/chat';
 import AudioTest from './pages/audio-test';
 import IoTToys from './pages/iot-toys';
 import BotManager from './pages/bot-manager';
+import DatasetManager from './pages/dataset';
 import logo from './logo.svg';
 import './App.css';
 const { Header, Content, Sider } = Layout;
@@ -51,6 +53,12 @@ const menuItems = [
     icon: <FileTextOutlined />,
     label: '生活物联网智能体',
     title: '生活物联网智能体管理平台',
+  },
+  {
+    key: '/datasets',
+    icon: <DatabaseOutlined />,
+    label: '知识库管理',
+    title: '知识库管理',
   },
   {
     key: '/transcription',
@@ -236,6 +244,7 @@ function App() {
         {/* 独立布局的路由 */}
         <Route path="/iot-toys" element={<IoTToys />} />
         <Route path="/bot-manager/*" element={<BotManager />} />
+        <Route path="/datasets/*" element={<DatasetManager />} />
 
         {/* 共享布局的路由 */}
         <Route element={<DefaultLayout />}>

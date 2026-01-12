@@ -24,6 +24,7 @@ import {
   DEFAULT_PROLOGUE,
   DEFAULT_SUGGESTED_QUESTIONS,
   PROMPT_LIMITS,
+  DEFAULT_SELECTED_PLUGINS,
 } from '../utils/constants';
 import {
   generatePrompt,
@@ -38,6 +39,7 @@ import AvatarUpload from './AvatarUpload';
 import PluginSelector from './PluginSelector';
 import VoiceSelector from './VoiceSelector';
 import PromptPreview from './PromptPreview';
+import DatasetSelector from '../../dataset/components/DatasetSelector';
 
 const BotForm = ({
   mode,
@@ -46,7 +48,8 @@ const BotForm = ({
   onCancel,
   uploadFile,
   fetchPlugins,
-  fetchBotDetail
+  fetchBotDetail,
+  datasets = []
 }: BotFormProps) => {
   const params = useParams();
   const actualBotId = botId || params.botId;
@@ -64,7 +67,8 @@ const BotForm = ({
   const [replyStyle, setReplyStyle] = useState<BotFormData['replyStyle']>('适中详细');
   const [selectedValues, setSelectedValues] = useState<string[]>(['善良', '真诚']);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['好好吃饭', '爱阅读', '讲文明']);
-  const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
+  const [selectedPlugins, setSelectedPlugins] = useState<string[]>(DEFAULT_SELECTED_PLUGINS);
+  const [selectedDatasetIds, setSelectedDatasetIds] = useState<string[]>([]);
   const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
 
@@ -126,6 +130,11 @@ const BotForm = ({
               // 加载建议问题列表
               setSuggestedQuestions(botDetail.onboarding_info?.suggested_questions || DEFAULT_SUGGESTED_QUESTIONS);
 
+              // 加载知识库 IDs
+              if (botDetail.knowledge?.knowledge_infos) {
+                setSelectedDatasetIds(botDetail.knowledge.knowledge_infos.map(k => k.id));
+              }
+
               form.setFieldsValue({
                 name: botDetail.name,
                 description: botDetail.description,
@@ -185,12 +194,16 @@ const BotForm = ({
             };
           }),
         } : undefined,
+        knowledge: selectedDatasetIds.length > 0 ? {
+          dataset_ids: selectedDatasetIds,
+        } : undefined,
         replyStyle,
         values: selectedValues,
         habits: selectedHabits,
         customPrompt,
         voiceId,
         voiceSpeed,
+        dataset_ids: selectedDatasetIds,
       };
 
       await onSubmit(formData);
@@ -472,6 +485,18 @@ const BotForm = ({
               onChange={setSelectedPlugins}
               options={pluginOptions}
             />
+          </Card>
+
+          {/* 知识库选择 */}
+          <Card title="知识库选择" className="form-section-card" style={{ marginBottom: 24 }}>
+            <DatasetSelector
+              value={selectedDatasetIds}
+              onChange={setSelectedDatasetIds}
+              datasets={datasets}
+            />
+            <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+              选择关联的知识库，智能体在对话时可以检索和使用这些知识库中的内容
+            </div>
           </Card>
 
           {/* 音色配置 */}
