@@ -734,8 +734,11 @@ export const PLUGINS = {
   // 童话故事合集
   FAIRY_TALES: '7495098187846385704',
 
-  // 百度天气插件
-  WEATHER: '7477951904853639209',
+  // 墨迹天气
+  WEATHER: '7362852017859018779',
+
+  // 现在时间
+  CURRENT_DATETIME: '7384737081651707916',
 
   // 亲子关系问题清单
   PARENT_CHILD_QA: '7375329794130591770',
@@ -744,12 +747,20 @@ export const PLUGINS = {
 /**
  * 默认展示的插件列表（供用户选择）
  *
- * 排除语音合成插件，默认展示 3 个插件供用户选择
+ * 排除语音合成插件，默认展示 4 个插件供用户选择
  */
 export const DEFAULT_PLUGINS = [
-  PLUGINS.DAILY_POETRY,      // 今日诗词
-  PLUGINS.FAIRY_TALES,       // 童话故事合集
-  PLUGINS.WEATHER,           // 百度天气插件
+  PLUGINS.DAILY_POETRY,        // 今日诗词
+  PLUGINS.FAIRY_TALES,         // 童话故事合集
+  PLUGINS.WEATHER,             // 墨迹天气
+  PLUGINS.CURRENT_DATETIME,    // 现在时间
+] as const;
+
+/**
+ * 默认选中的插件（创建智能体时自动选中）
+ */
+export const DEFAULT_SELECTED_PLUGINS = [
+  PLUGINS.CURRENT_DATETIME,    // 现在时间
 ] as const;
 
 /**
@@ -796,15 +807,28 @@ export const PLUGIN_INFO = [
     ],
   },
   {
-    id: '7477951904853639209',
-    name: '百度天气插件',
-    description: '获取实时天气查询',
-    icon: 'https://lf26-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/1018601783965514_1741096339319344099_VRyg92Wosy.png',
+    id: '7362852017859018779',
+    name: '墨迹天气',
+    description: '提供省、市、区县的未来40天的天气情况，包括温度、湿度、日夜风向等',
+    icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/3503520560195028_1706621033925555371_rPUemhsbVg.webp?lk3s=cd508e2b&x-expires=1770781989&x-signature=%2BlxXnCUTNtOPG3l7EwGdVLRXKks%3D',
     apiList: [
       {
-        apiId: '7477951904853655593',
-        name: 'weather',
-        description: '输入你所在城市或经纬度等参数，以获取最新的天气状况。',
+        apiId: '7362852017859035163',
+        name: 'DayWeather',
+        description: '获取国内指定日期的天气，不支持获取国外天气情况。',
+      },
+    ],
+  },
+  {
+    id: '7384737081651707916',
+    name: '现在时间',
+    description: '获取当前的日期和时间，格式为年-月-日 时:分:秒',
+    icon: 'https://lf3-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/3899331945958112_1719392810122317529_YpFUY06GHQ.jpg?lk3s=cd508e2b&x-expires=1770781989&x-signature=HLQFbtoK8dOlKKe%2BBK8tyilnfnI%3D',
+    apiList: [
+      {
+        apiId: '7384737081651724300',
+        name: 'get_current_datetime',
+        description: '获取当前的日期和时间，并以格式化的字符串形式返回。',
       },
     ],
   },
