@@ -60,8 +60,13 @@ export const useBotApi = (): UseBotApiReturn => {
     if (!auth || !auth.pat) {
       return null;
     }
+
+    // 在开发环境使用代理避免 CORS 问题
+    const isDev = import.meta.env.DEV;
+    const baseURL = isDev ? '/api/coze' : 'https://api.coze.cn';
+
     return new CozeAPI({
-      baseURL: 'https://api.coze.cn',
+      baseURL,
       token: auth.pat,
       allowPersonalAccessTokenInBrowser: true,
     });
