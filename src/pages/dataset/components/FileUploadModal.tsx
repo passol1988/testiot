@@ -26,7 +26,6 @@ import UploadProgressModal from './UploadProgressModal';
 import styles from '../styles';
 
 const { TextArea } = Input;
-const { Panel } = Collapse;
 
 const FileUploadModal: React.FC<FileUploadModalProps> = ({
   visible,
@@ -45,12 +44,9 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const [documentName, setDocumentName] = useState('');
   const [captionInputMode, setCaptionInputMode] = useState<0 | 1>(captionType || 0);
   const [caption, setCaption] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
   // Web page update settings
   const [updateType, setUpdateType] = useState<0 | 1>(0);
   const [updateInterval, setUpdateInterval] = useState(24);
-  // Local file name override
-  const [customFileName, setCustomFileName] = useState('');
 
   const isImageType = formatType === DatasetFormatType.IMAGE;
 
@@ -125,7 +121,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
                 name: file.name,
                 status: 'done' as const,
                 url: URL.createObjectURL(file),
-                originFileObj: file,
+                originFileObj: file as any,
               }))}
               onChange={({ fileList }) => {
                 const files = fileList
@@ -303,9 +299,6 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
                 ),
               },
             ]}
-            onChange={(activeKeys) => {
-              setShowAdvanced(activeKeys.includes('advanced'));
-            }}
           />
 
           <Form.Item>

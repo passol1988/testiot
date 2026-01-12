@@ -71,7 +71,7 @@ export const useDatasetApi = () => {
         page_size: 100,
       });
 
-      const datasetList = result.dataset_list || [];
+      const datasetList = (result.dataset_list || []) as DatasetInfo[];
       setDatasets(datasetList);
       return datasetList;
     } catch (error) {
@@ -192,7 +192,11 @@ export const useDatasetApi = () => {
         page_size: 50,
       });
 
-      return result.document_infos || [];
+      // Transform SDK types to our types, adding missing source_type field
+      return (result.document_infos || []).map((doc: any) => ({
+        ...doc,
+        source_type: doc.source_type ?? null,
+      })) as DocumentInfo[];
     } catch (error) {
       console.error('Failed to fetch documents:', error);
       message.error('获取文件列表失败');

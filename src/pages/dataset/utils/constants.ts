@@ -16,7 +16,7 @@ export const DEFAULT_CHUNK_STRATEGY: ChunkStrategy = {
  * 默认更新规则（在线网页）
  */
 export const DEFAULT_UPDATE_RULE = {
-  update_type: 0,  // 不自动更新
+  update_type: 0 as 0 | 1,  // 不自动更新
   update_interval: 0,
 };
 
@@ -55,9 +55,10 @@ export const UPLOAD_LIMITS = {
 /**
  * 支持的文件类型
  */
-export const SUPPORTED_FILE_TYPES = {
+export const SUPPORTED_FILE_TYPES: Record<number, string[]> = {
   [DatasetFormatType.TEXT]: ['.pdf', '.txt', '.doc', '.docx'],
   [DatasetFormatType.IMAGE]: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+  [DatasetFormatType.TABLE]: ['.xlsx', '.xls', '.csv'],
 };
 
 /**

@@ -34,7 +34,6 @@ import { DOCUMENT_STATUS_MAP, PAGINATION_CONFIG } from '../utils/constants';
 
 const FileList: React.FC<FileListProps> = ({
   datasetId,
-  formatType,
   onUpload,
   onRefresh,
   fetchDocuments: propFetchDocuments,

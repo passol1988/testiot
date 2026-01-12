@@ -16,14 +16,12 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   onDelete,
   onManage,
 }) => {
-  const formatBytes = (bytes: string): string => {
-    const num = parseInt(bytes, 10);
-    if (isNaN(num)) return '0 B';
-    if (num === 0) return '0 B';
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(num) / Math.log(k));
-    return Math.round(num / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   const formatTime = (timestamp: number): string => {

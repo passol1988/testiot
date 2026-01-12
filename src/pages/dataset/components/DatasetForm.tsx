@@ -15,7 +15,7 @@ import {
   message,
   Avatar,
 } from 'antd';
-import { PlusOutlined, FileTextOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import type { DatasetFormProps, DatasetFormData } from '../types';
 import { DatasetFormatType } from '../types';
 import { DATASET_TYPE_OPTIONS, CAPTION_TYPE_OPTIONS } from '../utils/constants';
@@ -25,7 +25,6 @@ const { TextArea } = Input;
 
 const DatasetForm: React.FC<DatasetFormProps> = ({
   mode,
-  datasetId,
   initialValues,
   onSubmit,
   onCancel,
@@ -33,7 +32,6 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [iconFile, setIconFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string>('');
   const [iconFileId, setIconFileId] = useState<string>('');
   const [formatType, setFormatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
@@ -60,7 +58,6 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
     }
 
     // 预览
-    setIconFile(file);
     setIconPreview(URL.createObjectURL(file));
 
     // 上传
@@ -88,7 +85,6 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
       const result = await onSubmit(submitData);
       if (result) {
         form.resetFields();
-        setIconFile(null);
         setIconPreview('');
         setIconFileId('');
         setExistingIconUrl('');

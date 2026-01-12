@@ -195,6 +195,10 @@ export interface DatasetFormData {
   icon_file_id?: string;
   format_type: DatasetFormatType;
   caption_type?: 0 | 1;  // 图片知识库的标注方式
+  // Icon URL for display only (not submitted)
+  icon_url?: string;
+  avatar_url?: string;
+  icon_uri?: string;
 }
 
 /**

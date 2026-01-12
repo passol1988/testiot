@@ -201,9 +201,10 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
                     captionType={captionType}
                     onUpload={() => setUploadModalVisible(true)}
                     onRefresh={handleRefresh}
-                    onUpdateCaption={async (documentId, caption) => {
+                    onUpdateCaption={async (_documentId, _caption) => {
                       try {
-                        // await api.updateImageCaption(documentId, caption);
+                        // TODO: Implement actual API call when available
+                        // await api.updateImageCaption(_documentId, _caption);
                         message.success('图片描述更新成功');
                         return true;
                       } catch (error) {
