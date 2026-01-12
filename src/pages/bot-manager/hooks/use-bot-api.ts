@@ -138,6 +138,9 @@ export const useBotApi = (): UseBotApiReturn => {
           icon: p.icon_url,
           apiList: [],
         })),
+        knowledge: bot.knowledge ? {
+          knowledge_infos: bot.knowledge.knowledge_infos || [],
+        } : undefined,
       };
     } catch (error) {
       console.error('Failed to fetch bot detail:', error);
@@ -167,6 +170,7 @@ export const useBotApi = (): UseBotApiReturn => {
         prompt_info: data.prompt_info,
         onboarding_info: data.onboarding_info,
         plugin_id_list: data.plugin_id_list,
+        // Note: knowledge field not supported in create, need to update after create
       });
       message.success('智能体创建成功');
       return result.bot_id;
@@ -201,6 +205,7 @@ export const useBotApi = (): UseBotApiReturn => {
       if (data.prompt_info !== undefined) updateParams.prompt_info = data.prompt_info;
       if (data.onboarding_info !== undefined) updateParams.onboarding_info = data.onboarding_info;
       if (data.plugin_id_list !== undefined) updateParams.plugin_id_list = data.plugin_id_list;
+      if (data.knowledge !== undefined) updateParams.knowledge = data.knowledge;
 
       console.log('更新智能体参数:', JSON.stringify(updateParams, null, 2));
 

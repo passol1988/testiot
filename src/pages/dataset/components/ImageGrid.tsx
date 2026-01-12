@@ -1,11 +1,10 @@
 /**
  * ImageGrid 组件
- * 图片网格（图片知识库）
+ * 图片列表（图片知识库）- 列表布局
  */
 
 import React, { useEffect, useState } from 'react';
 import {
-  Grid,
   Button,
   Tag,
   Input,
@@ -15,9 +14,9 @@ import {
   Space,
   Spin,
   message,
+  Checkbox,
 } from 'antd';
 import {
-  PlusOutlined,
   UploadOutlined,
   ReloadOutlined,
   EditOutlined,
@@ -146,6 +145,46 @@ const ImageGrid: React.FC<ImageGridProps> = ({
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredImages.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredImages.map(img => img.document_id));
+    }
+  };
+
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatTime = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN');
+  };
+
+  const renderStatus = (status: DocumentStatus) => {
+    const statusConfig = DOCUMENT_STATUS_MAP[status];
+    if (status === DocumentStatus.PROCESSING) {
+      return (
+        <Tag color={statusConfig.color} icon={<LoadingOutlined />}>
+          {statusConfig.text}
+        </Tag>
+      );
+    }
+    if (status === DocumentStatus.COMPLETED) {
+      return (
+        <Tag color={statusConfig.color}>
+          {statusConfig.text}
+        </Tag>
+      );
+    }
+    return <Tag color={statusConfig.color}>{statusConfig.text}</Tag>;
+  };
+
   return (
     <div>
       {/* 操作栏 */}
@@ -191,7 +230,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
         </Space>
       </div>
 
-      {/* 图片网格 */}
+      {/* 图片列表 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 100 }}>
           <Spin size="large" />
@@ -201,72 +240,164 @@ const ImageGrid: React.FC<ImageGridProps> = ({
           {searchText || filterStatus !== undefined ? '未找到匹配的图片' : '暂无图片'}
         </div>
       ) : (
-        <div className="image-grid">
-          {filteredImages.map(image => (
-            <div
-              key={image.document_id}
-              className="image-card"
-              style={{
-                position: 'relative',
-                borderRadius: 12,
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s',
-                border: selectedIds.includes(image.document_id) ? '2px solid #FF6B6B' : '2px solid transparent',
-              }}
-            >
-              <img src={image.url} alt={image.name} style={{ width: '100%', height: 200, objectFit: 'cover' }} />
+        <div>
+          {/* 列表头 */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '60px 120px 1px 1fr 120px 120px 180px 120px',
+            gap: '16px',
+            padding: '12px 16px',
+            background: '#fafafa',
+            borderRadius: '8px 8px 0 0',
+            borderBottom: '1px solid #f0f0f0',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#666',
+          }}>
+            <div>
+              <Checkbox
+                checked={selectedIds.length === filteredImages.length && filteredImages.length > 0}
+                indeterminate={selectedIds.length > 0 && selectedIds.length < filteredImages.length}
+                onChange={toggleSelectAll}
+              />
+            </div>
+            <div>图片</div>
+            <div></div>
+            <div>描述</div>
+            <div>大小</div>
+            <div>状态</div>
+            <div>上传时间</div>
+            <div style={{ textAlign: 'right' }}>操作</div>
+          </div>
 
-              {/* 状态遮罩 */}
-              {image.status === DocumentStatus.PROCESSING && (
-                <div className="image-status-overlay">
-                  <Spin indicator={<LoadingOutlined spin />} />
-                  <span>处理中...</span>
-                </div>
-              )}
-
-              {/* 选择框 */}
+          {/* 列表内容 */}
+          <div style={{
+            borderRadius: '0 0 8px 8px',
+            border: '1px solid #f0f0f0',
+            borderTop: 'none',
+            maxHeight: '600px',
+            overflowY: 'auto',
+          }}>
+            {filteredImages.map((image, index) => (
               <div
+                key={image.document_id}
                 style={{
-                  position: 'absolute',
-                  top: 8,
-                  left: 8,
-                  zIndex: 2,
+                  display: 'grid',
+                  gridTemplateColumns: '60px 120px 1px 1fr 120px 120px 180px 120px',
+                  gap: '16px',
+                  padding: '12px 16px',
+                  borderBottom: index < filteredImages.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  alignItems: 'center',
+                  background: selectedIds.includes(image.document_id) ? '#fff5f5' : 'white',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!selectedIds.includes(image.document_id)) {
+                    e.currentTarget.style.background = '#fafafa';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!selectedIds.includes(image.document_id)) {
+                    e.currentTarget.style.background = 'white';
+                  }
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(image.document_id)}
-                  onChange={() => toggleSelect(image.document_id)}
-                  style={{ width: 18, height: 18, cursor: 'pointer' }}
-                />
-              </div>
+                {/* 选择框 */}
+                <div>
+                  <Checkbox
+                    checked={selectedIds.includes(image.document_id)}
+                    onChange={() => toggleSelect(image.document_id)}
+                  />
+                </div>
 
-              {/* Hover 显示操作 */}
-              <div className="image-actions">
-                <div className="image-caption">{image.caption || '无描述'}</div>
-                <Space>
-                  {captionType === 1 && (
+                {/* 图片缩略图 */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    border: '1px solid #f0f0f0',
+                    background: '#fafafa',
+                  }}>
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 分隔线 */}
+                <div style={{ width: '1px', height: '60px', background: '#f0f0f0' }}></div>
+
+                {/* 描述 */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#333',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    lineHeight: '1.5',
+                  }}>
+                    {image.caption || <span style={{ color: '#999' }}>无描述</span>}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#999',
+                    marginTop: 4,
+                  }}>
+                    {image.name}
+                  </div>
+                </div>
+
+                {/* 大小 */}
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {formatBytes(image.size)}
+                </div>
+
+                {/* 状态 */}
+                <div>
+                  {renderStatus(image.status)}
+                </div>
+
+                {/* 上传时间 */}
+                <div style={{ fontSize: '13px', color: '#666' }}>
+                  {formatTime(image.create_time)}
+                </div>
+
+                {/* 操作 */}
+                <div style={{ textAlign: 'right' }}>
+                  <Space size="small">
+                    {captionType === 1 && (
+                      <Button
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditClick(image)}
+                      >
+                        编辑
+                      </Button>
+                    )}
                     <Button
                       size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => handleEditClick(image)}
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete([image.document_id])}
                     >
-                      编辑描述
+                      删除
                     </Button>
-                  )}
-                  <Button
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDelete([image.document_id])}
-                  >
-                    删除
-                  </Button>
-                </Space>
+                  </Space>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

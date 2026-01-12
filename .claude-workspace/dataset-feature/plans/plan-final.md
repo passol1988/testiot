@@ -1100,3 +1100,39 @@ handleUpload()
 ---
 
 *版本：final - 已确认，进入实现阶段*
+
+---
+
+## 14. 变更记录
+
+### 2025-01-12: 图片列表布局变更
+
+**变更原因**: 用户反馈图片网格布局图片太大，只展示头部不美观。
+
+**变更内容**:
+- 将 `ImageGrid` 组件从网格布局改为列表布局
+- 使用 CSS Grid 布局，左侧显示 80x80 图片缩略图，右侧显示描述信息
+- 添加列表头（选择、图片、描述、大小、状态、上传时间、操作）
+- 图片使用 `objectFit: 'contain'` 完整显示内容
+- 添加搜索和筛选功能
+
+**影响文件**:
+- `src/pages/dataset/components/ImageGrid.tsx`
+
+### 2025-01-12: 智能体知识库关联功能
+
+**新增功能**: 智能体创建/编辑时支持关联多个知识库。
+
+**实现内容**:
+1. `BotDetail` 类型添加 `knowledge` 字段
+2. `BotFormData` 类型添加 `knowledge.dataset_ids` 字段
+3. BotForm 添加知识库选择 Card
+4. updateBot 支持 knowledge 参数
+5. bot-manager/index.tsx 集成 useDatasetApi，登录时自动加载知识库列表
+
+**影响文件**:
+- `src/pages/bot-manager/types.ts`
+- `src/pages/bot-manager/hooks/use-bot-api.ts`
+- `src/pages/bot-manager/components/BotForm.tsx`
+- `src/pages/bot-manager/index.tsx`
+- `src/pages/dataset/hooks/use-dataset-api.ts`

@@ -3,6 +3,9 @@
  * Bot Manager Type Definitions
  */
 
+// Import DatasetInfo from dataset module
+import type { DatasetInfo } from '../dataset/types';
+
 // ==================== API 类型 ====================
 
 /**
@@ -32,6 +35,9 @@ export interface BotDetail extends BotInfo {
     suggested_questions?: string[];
   };
   plugin_info_list?: PluginInfo[];
+  knowledge?: {
+    knowledge_infos?: Array<{ id: string; name: string }>;
+  };
 }
 
 /**
@@ -83,6 +89,9 @@ export interface BotFormData {
       api_id?: string;
     }>;
   };
+  knowledge?: {
+    dataset_ids?: string[];
+  };
 
   // 扩展字段（Storage）
   replyStyle: '简洁明了' | '适中详细' | '丰富详尽';
@@ -91,6 +100,7 @@ export interface BotFormData {
   customPrompt: string;
   voiceId?: string;
   voiceSpeed: number;
+  dataset_ids?: string[];  // 知识库 ID 列表
 }
 
 // ==================== Storage 类型 ====================
@@ -198,6 +208,7 @@ export interface BotFormProps {
   fetchVoices?: () => Promise<VoiceInfo[]>;
   fetchPlugins?: () => Promise<PluginInfo[]>;
   fetchBotDetail?: (botId: string) => Promise<BotDetail | null>;
+  datasets?: DatasetInfo[];
 }
 
 /**

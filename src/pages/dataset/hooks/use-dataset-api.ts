@@ -57,10 +57,10 @@ export const useDatasetApi = () => {
   /**
    * 获取知识库列表
    */
-  const fetchDatasets = useCallback(async (): Promise<void> => {
+  const fetchDatasets = useCallback(async (): Promise<DatasetInfo[] | null> => {
     const api = getCozeApi();
     if (!api) {
-      return;
+      return null;
     }
 
     setLoading(true);
@@ -71,10 +71,13 @@ export const useDatasetApi = () => {
         page_size: 100,
       });
 
-      setDatasets(result.dataset_list || []);
+      const datasetList = result.dataset_list || [];
+      setDatasets(datasetList);
+      return datasetList;
     } catch (error) {
       console.error('Failed to fetch datasets:', error);
       message.error('获取知识库列表失败');
+      return null;
     } finally {
       setLoading(false);
     }
