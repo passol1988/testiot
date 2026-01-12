@@ -68,19 +68,15 @@ const DatasetList: React.FC<DatasetListProps> = ({
       {/* 操作栏 */}
       <div style={{ padding: '24px 24px 16px' }}>
         <Row gutter={16} align="middle">
-          <Col span={24} style={{ marginBottom: 8 }}>
-            <Space>
-              <Button
-                icon={<RollbackOutlined />}
-                onClick={() => navigate('/bot-manager')}
-              >
-                返回智能体管理
-              </Button>
-            </Space>
+          <Col xs={24} sm={6} md={5}>
+            <Button
+              icon={<RollbackOutlined />}
+              onClick={() => navigate('/bot-manager')}
+            >
+              返回智能体管理
+            </Button>
           </Col>
-        </Row>
-        <Row gutter={16} align="middle" style={{ marginTop: 8 }}>
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={18} md={8}>
             <Search
               placeholder="搜索知识库名称或描述"
               allowClear
@@ -89,7 +85,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
               prefix={<SearchOutlined />}
             />
           </Col>
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={5}>
             <Select
               placeholder="筛选类型"
               allowClear
@@ -99,7 +95,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
               options={DATASET_TYPE_OPTIONS}
             />
           </Col>
-          <Col xs={24} sm={24} md={10} style={{ textAlign: 'right' }}>
+          <Col xs={24} sm={12} md={6} style={{ textAlign: 'right' }}>
             <Space>
               <Button
                 icon={<ReloadOutlined />}

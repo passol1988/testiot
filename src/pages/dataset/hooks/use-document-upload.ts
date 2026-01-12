@@ -3,7 +3,7 @@
  * 处理文件上传和进度轮询
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { message } from 'antd';
 import type {
   DocumentProgress,
@@ -28,6 +28,7 @@ export const useDocumentUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [progressData, setProgressData] = useState<DocumentProgress[]>([]);
   const [progressModalVisible, setProgressModalVisible] = useState(false);
+  const uploadStartTimeRef = useRef<number>(0);
 
   /**
    * 文件转 Base64
@@ -62,12 +63,20 @@ export const useDocumentUpload = () => {
     onSuccess?: () => void
   ): Promise<void> => {
     let attempts = 0;
+    uploadStartTimeRef.current = Date.now();
     setProgressModalVisible(true);
 
     const poll = async () => {
       attempts++;
       const progressList = await fetchDocumentProgress(datasetId, documentIds);
-      setProgressData(progressList);
+      // Calculate elapsed time in seconds
+      const elapsedSeconds = Math.floor((Date.now() - uploadStartTimeRef.current) / 1000);
+      // Add elapsed_time to each progress item
+      const progressWithElapsed = progressList.map(p => ({
+        ...p,
+        elapsed_time: elapsedSeconds,
+      }));
+      setProgressData(progressWithElapsed);
 
       const allDone = progressList.every(
         p => p.status === 1 || p.status === 9

@@ -158,6 +158,7 @@ export interface DocumentProgress {
   status: DocumentStatus;
   progress: number;          // 百分比 0-100
   remaining_time: number;    // 剩余时间（秒）
+  elapsed_time?: number;     // 已耗时（秒）
   url: string;
   size: number;
   type: string;

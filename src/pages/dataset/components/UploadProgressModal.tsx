@@ -54,7 +54,7 @@ const UploadProgressModal: React.FC<UploadProgressModalProps> = ({
                   />
                   {item.status === DocumentStatus.PROCESSING && (
                     <Text type="secondary">
-                      {' '}预计剩余 {item.remaining_time} 秒
+                      {' '}已耗时 {item.elapsed_time ?? 0} 秒
                     </Text>
                   )}
                   {item.status === DocumentStatus.FAILED && (

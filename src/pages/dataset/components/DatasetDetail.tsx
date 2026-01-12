@@ -32,12 +32,12 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
   const navigate = useNavigate();
   const api = useDatasetApi();
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [formatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
-  const [captionType] = useState<0 | 1>(0);
-  const [progressData] = useState<any[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [progressData] = useState<any[]>([]);
 
   const dataset = propDataset;
+  const formatType = dataset?.format_type ?? DatasetFormatType.TEXT;
+  const captionType = dataset?.chunk_strategy.caption_type ?? 0;
 
   const handleDelete = () => {
     Modal.confirm({
@@ -172,6 +172,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
           marginBottom: 0,
           background: 'white',
           borderRadius: '16px 16px 0 0',
+          borderBottom: 'none',
         }}
         items={[
           {
