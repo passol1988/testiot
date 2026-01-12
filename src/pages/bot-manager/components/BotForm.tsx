@@ -24,6 +24,7 @@ import {
   DEFAULT_PROLOGUE,
   DEFAULT_SUGGESTED_QUESTIONS,
   PROMPT_LIMITS,
+  DEFAULT_SELECTED_PLUGINS,
 } from '../utils/constants';
 import {
   generatePrompt,
@@ -66,7 +67,7 @@ const BotForm = ({
   const [replyStyle, setReplyStyle] = useState<BotFormData['replyStyle']>('适中详细');
   const [selectedValues, setSelectedValues] = useState<string[]>(['善良', '真诚']);
   const [selectedHabits, setSelectedHabits] = useState<string[]>(['好好吃饭', '爱阅读', '讲文明']);
-  const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
+  const [selectedPlugins, setSelectedPlugins] = useState<string[]>(DEFAULT_SELECTED_PLUGINS);
   const [selectedDatasetIds, setSelectedDatasetIds] = useState<string[]>([]);
   const [voiceId, setVoiceId] = useState<string | undefined>(undefined);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);

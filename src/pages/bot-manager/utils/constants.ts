@@ -54,11 +54,18 @@ export const DEFAULT_PLUGINS = [
     icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/4223672455014680_1757412179311746878_cfqpVn9V7Q.jpg',
   },
   {
-    id: '7477951904853639209',
-    name: '百度天气插件',
-    api_id: '7477951904853655593',  // weather
-    description: '获取实时天气查询',
-    icon: 'https://lf3-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/1018601783965514_1741096339319344099_VRyg92Wosy.png',
+    id: '7362852017859018779',
+    name: '墨迹天气',
+    api_id: '7362852017859035163',  // DayWeather
+    description: '提供省、市、区县的未来40天的天气情况，包括温度、湿度、日夜风向等',
+    icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/3503520560195028_1706621033925555371_rPUemhsbVg.webp?lk3s=cd508e2b&x-expires=1770781989&x-signature=%2BlxXnCUTNtOPG3l7EwGdVLRXKks%3D',
+  },
+  {
+    id: '7384737081651707916',
+    name: '现在时间',
+    api_id: '7384737081651724300',  // get_current_datetime
+    description: '获取当前的日期和时间，格式为年-月-日 时:分:秒',
+    icon: 'https://lf3-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/3899331945958112_1719392810122317529_YpFUY06GHQ.jpg?lk3s=cd508e2b&x-expires=1770781989&x-signature=HLQFbtoK8dOlKKe%2BBK8tyilnfnI%3D',
   },
   {
     id: '7375329794130591770',
@@ -68,6 +75,11 @@ export const DEFAULT_PLUGINS = [
     icon: 'https://lf6-appstore-sign.oceancloudapi.com/ocean-cloud-tos/plugin_icon/default_icon.png',
   },
 ] as const;
+
+// 默认选中的插件（创建智能体时自动选中）
+export const DEFAULT_SELECTED_PLUGINS: string[] = [
+  '7384737081651707916',  // 现在时间
+];
 
 // 音色配置范围
 export const VOICE_PITCH_RANGE = { min: 0.5, max: 2.0, step: 0.1 };
