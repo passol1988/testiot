@@ -7,12 +7,13 @@ import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import type {
   DocumentProgress,
-  DatasetFormatType,
   DocumentBase,
+} from '../types';
+import {
+  DatasetFormatType,
   DocumentSourceType,
 } from '../types';
 import {
-  DEFAULT_CHUNK_STRATEGY,
   DEFAULT_UPDATE_RULE,
   POLLING_CONFIG,
 } from '../utils/constants';
@@ -191,7 +192,8 @@ export const useDocumentUpload = () => {
     datasetId: string,
     webUrl: string,
     documentName: string,
-    onSuccess?: () => void
+    onSuccess?: () => void,
+    updateRule?: { update_type: 0 | 1; update_interval: number }
   ): Promise<void> => {
     setUploading(true);
     try {
@@ -201,7 +203,7 @@ export const useDocumentUpload = () => {
           web_url: webUrl,
           document_source: 1 as DocumentSourceType,
         },
-        update_rule: DEFAULT_UPDATE_RULE,
+        update_rule: updateRule || DEFAULT_UPDATE_RULE,
       }];
 
       const ids = await createDocument(

@@ -94,11 +94,9 @@ const FileList: React.FC<FileListProps> = ({
     const statusConfig = DOCUMENT_STATUS_MAP[status];
     if (status === DocumentStatus.PROCESSING) {
       return (
-        <Tooltip title={`预计剩余时间: ${record.update_interval}秒`}>
-          <Tag color={statusConfig.color} icon={<LoadingOutlined />}>
-            {statusConfig.text}...
-          </Tag>
-        </Tooltip>
+        <Tag color={statusConfig.color} icon={<LoadingOutlined />}>
+          {statusConfig.text}...
+        </Tag>
       );
     }
     if (status === DocumentStatus.COMPLETED) {

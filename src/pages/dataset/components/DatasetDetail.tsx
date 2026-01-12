@@ -35,6 +35,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
   const [formatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
   const [captionType] = useState<0 | 1>(0);
   const [progressData] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const dataset = propDataset;
 
@@ -66,11 +67,12 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
 
   const handleUploadSuccess = () => {
     setUploadModalVisible(false);
-    // 父组件会刷新数据
+    // 触发文件列表刷新
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleRefresh = () => {
-    // 父组件会刷新数据
+    setRefreshKey(prev => prev + 1);
   };
 
   const formatTime = (timestamp: number): string => {
@@ -187,6 +189,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
               <div className="dataset-detail-content">
                 {isImageType ? (
                   <ImageGrid
+                    key={`images-${refreshKey}`}
                     datasetId={datasetId}
                     captionType={captionType}
                     onUpload={() => setUploadModalVisible(true)}
@@ -206,6 +209,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
                   />
                 ) : (
                   <FileList
+                    key={`files-${refreshKey}`}
                     datasetId={datasetId}
                     formatType={dataset.format_type}
                     onUpload={() => setUploadModalVisible(true)}

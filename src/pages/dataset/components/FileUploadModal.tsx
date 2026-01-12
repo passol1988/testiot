@@ -14,6 +14,8 @@ import {
   Radio,
   Space,
   message,
+  Select,
+  Collapse,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { FileUploadModalProps } from '../types';
@@ -24,6 +26,7 @@ import UploadProgressModal from './UploadProgressModal';
 import styles from '../styles';
 
 const { TextArea } = Input;
+const { Panel } = Collapse;
 
 const FileUploadModal: React.FC<FileUploadModalProps> = ({
   visible,
@@ -42,6 +45,12 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const [documentName, setDocumentName] = useState('');
   const [captionInputMode, setCaptionInputMode] = useState<0 | 1>(captionType || 0);
   const [caption, setCaption] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Web page update settings
+  const [updateType, setUpdateType] = useState<0 | 1>(0);
+  const [updateInterval, setUpdateInterval] = useState(24);
+  // Local file name override
+  const [customFileName, setCustomFileName] = useState('');
 
   const isImageType = formatType === DatasetFormatType.IMAGE;
 
@@ -75,7 +84,10 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
       return;
     }
 
-    await uploadWebPage(datasetId, webUrl, documentName, onSuccess);
+    await uploadWebPage(datasetId, webUrl, documentName, onSuccess, {
+      update_type: updateType,
+      update_interval: updateInterval,
+    });
   };
 
   const beforeUpload = (file: File) => {
@@ -130,12 +142,33 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
                 }
               }}
               listType={isImageType ? 'picture-card' : 'text'}
+              style={isImageType ? {} : { width: '100%' }}
             >
               {(!isImageType || selectedFiles.length < UPLOAD_LIMITS.maxFilesPerUpload) && (
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>
-                    {isImageType ? '上传图片' : '选择文件'}
+                <div style={{
+                  padding: '24px',
+                  border: '2px dashed #d9d9d9',
+                  borderRadius: '8px',
+                  background: '#fafafa',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#FF6B6B';
+                  e.currentTarget.style.background = '#fff5f5';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#d9d9d9';
+                  e.currentTarget.style.background = '#fafafa';
+                }}
+                >
+                  <PlusOutlined style={{ fontSize: '24px', color: '#FF6B6B' }} />
+                  <div style={{ marginTop: 12, fontSize: '14px', fontWeight: 500 }}>
+                    {isImageType ? '点击上传图片' : '点击选择文件'}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: '12px', color: '#999' }}>
+                    或拖拽文件到此处
                   </div>
                 </div>
               )}
@@ -228,6 +261,53 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
             />
           </Form.Item>
 
+          <Collapse
+            ghost
+            style={{ marginBottom: 16 }}
+            items={[
+              {
+                key: 'advanced',
+                label: '高级选项',
+                children: (
+                  <Form layout="vertical" style={{ marginBottom: 0 }}>
+                    <Form.Item label="自动更新">
+                      <Select
+                        value={updateType}
+                        onChange={(value) => setUpdateType(value)}
+                        options={[
+                          { label: '不自动更新', value: 0 },
+                          { label: '自动更新', value: 1 },
+                        ]}
+                      />
+                    </Form.Item>
+
+                    {updateType === 1 && (
+                      <Form.Item
+                        label="更新频率（小时）"
+                        rules={[
+                          { required: true, message: '请输入更新频率' },
+                          { type: 'number', min: 24, message: '更新频率最小为 24 小时' },
+                        ]}
+                      >
+                        <Input
+                          type="number"
+                          placeholder="24"
+                          min={24}
+                          value={updateInterval}
+                          onChange={(e) => setUpdateInterval(Number(e.target.value))}
+                          addonAfter="小时"
+                        />
+                      </Form.Item>
+                    )}
+                  </Form>
+                ),
+              },
+            ]}
+            onChange={(activeKeys) => {
+              setShowAdvanced(activeKeys.includes('advanced'));
+            }}
+          />
+
           <Form.Item>
             <Space wrap>
               <Button
@@ -260,6 +340,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as 'local' | 'web')}
           items={tabItems}
+          tabBarStyle={{ borderBottom: 'none' }}
         />
       </Modal>
 
