@@ -165,8 +165,14 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
       </div>
 
       {/* Tab 内容 */}
+      <style>{`
+        .dataset-tabs-no-ink .ant-tabs-ink-bar {
+          display: none !important;
+        }
+      `}</style>
       <Tabs
         defaultActiveKey="files"
+        className="dataset-tabs-no-ink"
         tabBarStyle={{
           padding: '0 24px',
           marginBottom: 0,
