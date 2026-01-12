@@ -37,6 +37,9 @@ const FileList: React.FC<FileListProps> = ({
   formatType,
   onUpload,
   onRefresh,
+  fetchDocuments: propFetchDocuments,
+  deleteDocuments: propDeleteDocuments,
+  updateDocument: propUpdateDocument,
 }) => {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,13 +60,18 @@ const FileList: React.FC<FileListProps> = ({
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      // 这里需要调用 API，暂时使用 mock 数据
-      // const api = useDatasetApi();
-      // const docs = await api.fetchDocuments(datasetId, pagination.current);
-      setDocuments([]);
-      setPagination(prev => ({ ...prev, total: 0 }));
+      if (propFetchDocuments) {
+        const docs = await propFetchDocuments(datasetId, pagination.current);
+        setDocuments(docs);
+        setPagination(prev => ({ ...prev, total: docs.length }));
+      } else {
+        setDocuments([]);
+        setPagination(prev => ({ ...prev, total: 0 }));
+      }
     } catch (error) {
       message.error('获取文件列表失败');
+      setDocuments([]);
+      setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
       setLoading(false);
     }
@@ -126,11 +134,15 @@ const FileList: React.FC<FileListProps> = ({
       cancelText: '取消',
       onOk: async () => {
         try {
-          // await deleteDocuments(documentIds);
-          message.success('文件删除成功');
-          setSelectedIds([]);
-          fetchDocuments();
-          onRefresh?.();
+          if (propDeleteDocuments) {
+            await propDeleteDocuments(documentIds);
+            message.success('文件删除成功');
+            setSelectedIds([]);
+            fetchDocuments();
+            onRefresh?.();
+          } else {
+            message.warning('删除功能暂不可用');
+          }
         } catch (error) {
           message.error('文件删除失败');
         }
@@ -151,18 +163,22 @@ const FileList: React.FC<FileListProps> = ({
   const handleEditSubmit = async () => {
     try {
       const values = await editForm.validateFields();
-      // await updateDocument(currentDocument.document_id, {
-      //   document_name: values.document_name,
-      //   update_rule: {
-      //     update_type: values.update_type,
-      //     update_interval: values.update_interval,
-      //   },
-      // });
-      message.success('文件更新成功');
-      setEditModalVisible(false);
-      setCurrentDocument(null);
-      fetchDocuments();
-      onRefresh?.();
+      if (propUpdateDocument && currentDocument) {
+        await propUpdateDocument(currentDocument.document_id, {
+          document_name: values.document_name,
+          update_rule: {
+            update_type: values.update_type,
+            update_interval: values.update_interval,
+          },
+        });
+        message.success('文件更新成功');
+        setEditModalVisible(false);
+        setCurrentDocument(null);
+        fetchDocuments();
+        onRefresh?.();
+      } else {
+        message.warning('更新功能暂不可用');
+      }
     } catch (error) {
       message.error('文件更新失败');
     }

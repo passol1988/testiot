@@ -38,6 +38,8 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   onUpload,
   onRefresh,
   onUpdateCaption,
+  fetchImages: propFetchImages,
+  deleteImages: propDeleteImages,
 }) => {
   const [images, setImages] = useState<PhotoInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -60,13 +62,18 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   const fetchImages = async () => {
     setLoading(true);
     try {
-      // 这里需要调用 API
-      // const api = useDatasetApi();
-      // const imgs = await api.fetchImages(datasetId, pagination.current);
-      setImages([]);
-      setPagination(prev => ({ ...prev, total: 0 }));
+      if (propFetchImages) {
+        const imgs = await propFetchImages(datasetId, pagination.current);
+        setImages(imgs);
+        setPagination(prev => ({ ...prev, total: imgs.length }));
+      } else {
+        setImages([]);
+        setPagination(prev => ({ ...prev, total: 0 }));
+      }
     } catch (error) {
       message.error('获取图片列表失败');
+      setImages([]);
+      setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
       setLoading(false);
     }
@@ -109,11 +116,15 @@ const ImageGrid: React.FC<ImageGridProps> = ({
       cancelText: '取消',
       onOk: async () => {
         try {
-          // await deleteDocuments(imageIds);
-          message.success('图片删除成功');
-          setSelectedIds([]);
-          fetchImages();
-          onRefresh?.();
+          if (propDeleteImages) {
+            await propDeleteImages(imageIds);
+            message.success('图片删除成功');
+            setSelectedIds([]);
+            fetchImages();
+            onRefresh?.();
+          } else {
+            message.warning('删除功能暂不可用');
+          }
         } catch (error) {
           message.error('图片删除失败');
         }

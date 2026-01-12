@@ -260,6 +260,9 @@ export interface FileListProps {
   formatType: DatasetFormatType;
   onUpload: () => void;
   onRefresh: () => void;
+  fetchDocuments?: (datasetId: string, page?: number) => Promise<DocumentInfo[]>;
+  deleteDocuments?: (documentIds: string[]) => Promise<boolean>;
+  updateDocument?: (documentId: string, data: { document_name?: string; update_rule?: UpdateRule }) => Promise<boolean>;
 }
 
 /**
@@ -271,6 +274,8 @@ export interface ImageGridProps {
   onUpload: () => void;
   onRefresh: () => void;
   onUpdateCaption: (documentId: string, caption: string) => Promise<boolean>;
+  fetchImages?: (datasetId: string, page?: number) => Promise<PhotoInfo[]>;
+  deleteImages?: (documentIds: string[]) => Promise<boolean>;
 }
 
 /**

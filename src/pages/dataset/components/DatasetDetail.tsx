@@ -16,6 +16,7 @@ import {
 import type { DatasetDetailProps } from '../types';
 import { DatasetFormatType } from '../types';
 import { DATASET_TYPE_MAP } from '../utils/constants';
+import { useDatasetApi } from '../hooks/use-dataset-api';
 import FileList from './FileList';
 import ImageGrid from './ImageGrid';
 import FileUploadModal from './FileUploadModal';
@@ -29,6 +30,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
   onEdit,
 }) => {
   const navigate = useNavigate();
+  const api = useDatasetApi();
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [formatType] = useState<DatasetFormatType>(DatasetFormatType.TEXT);
   const [captionType] = useState<0 | 1>(0);
@@ -189,7 +191,7 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
                     captionType={captionType}
                     onUpload={() => setUploadModalVisible(true)}
                     onRefresh={handleRefresh}
-                    onUpdateCaption={async (_documentId, _caption) => {
+                    onUpdateCaption={async (documentId, caption) => {
                       try {
                         // await api.updateImageCaption(documentId, caption);
                         message.success('图片描述更新成功');
@@ -199,6 +201,8 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
                         return false;
                       }
                     }}
+                    fetchImages={api.fetchImages}
+                    deleteImages={api.deleteDocuments}
                   />
                 ) : (
                   <FileList
@@ -206,6 +210,9 @@ const DatasetDetail: React.FC<DatasetDetailProps> = ({
                     formatType={dataset.format_type}
                     onUpload={() => setUploadModalVisible(true)}
                     onRefresh={handleRefresh}
+                    fetchDocuments={api.fetchDocuments}
+                    deleteDocuments={api.deleteDocuments}
+                    updateDocument={api.updateDocument}
                   />
                 )}
               </div>
